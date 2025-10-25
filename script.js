@@ -54,6 +54,7 @@ const state = {
   bobbingTarget: 'none',
   bobbingSpeed: 3,
   bobbingAmplitude: 6,
+  bobbingDirection: 'vertical',
   char1Library: [],
   char2Library: [],
   selectedChar1: null,
@@ -84,8 +85,10 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const charHeight = state.charImage.height * scaleFactor;
     const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char1' || state.bobbingTarget === 'both');
     const bobOffset = shouldBob ? Math.sin(animationTime * 0.001 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
-    const x = (canvas.width * state.charX / 100) - (charWidth / 2);
-    const y = (canvas.height * state.charY / 100) - (charHeight / 2) + bobOffset;
+    const xOffset = state.bobbingDirection === 'horizontal' ? bobOffset : 0;
+    const yOffset = state.bobbingDirection === 'vertical' ? bobOffset : 0;
+    const x = (canvas.width * state.charX / 100) - (charWidth / 2) + xOffset;
+    const y = (canvas.height * state.charY / 100) - (charHeight / 2) + yOffset;
 
     ctx.save();
     if (state.charFlipped) {
@@ -104,8 +107,10 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const charHeight = state.char2Image.height * scaleFactor;
     const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char2' || state.bobbingTarget === 'both');
     const bobOffset = shouldBob ? Math.sin(animationTime * 0.001 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
-    const x = (canvas.width * state.char2X / 100) - (charWidth / 2);
-    const y = (canvas.height * state.char2Y / 100) - (charHeight / 2) + bobOffset;
+    const xOffset = state.bobbingDirection === 'horizontal' ? bobOffset : 0;
+    const yOffset = state.bobbingDirection === 'vertical' ? bobOffset : 0;
+    const x = (canvas.width * state.char2X / 100) - (charWidth / 2) + xOffset;
+    const y = (canvas.height * state.char2Y / 100) - (charHeight / 2) + yOffset;
 
     ctx.save();
     if (state.char2Flipped) {
@@ -927,6 +932,7 @@ function createScene() {
     dialogueY: state.dialogueY,
     bobbingEnabled: state.bobbingEnabled,
     bobbingTarget: state.bobbingTarget,
+    bobbingDirection: state.bobbingDirection,
     bobbingSpeed: state.bobbingSpeed,
     bobbingAmplitude: state.bobbingAmplitude,
     char1Index: state.selectedChar1,
@@ -1073,6 +1079,17 @@ function renderScenes() {
       </select>
     `;
 
+    const bobbingDirectionField = document.createElement('div');
+    bobbingDirectionField.className = 'scene-field';
+    const bobbingDirection = scene.bobbingDirection || 'vertical';
+    bobbingDirectionField.innerHTML = `
+      <label>Bobbing Direction:</label>
+      <select onchange="updateScene(${index}, 'bobbingDirection', this.value)">
+        <option value="vertical" ${bobbingDirection === 'vertical' ? 'selected' : ''}>Vertical</option>
+        <option value="horizontal" ${bobbingDirection === 'horizontal' ? 'selected' : ''}>Horizontal</option>
+      </select>
+    `;
+
     const bobbingSpeedField = document.createElement('div');
     bobbingSpeedField.className = 'scene-field';
     const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
@@ -1153,6 +1170,7 @@ function renderScenes() {
     sceneDetails.appendChild(speakerField);
     sceneDetails.appendChild(bobbingEnabledField);
     sceneDetails.appendChild(bobbingTargetField);
+    sceneDetails.appendChild(bobbingDirectionField);
     sceneDetails.appendChild(bobbingSpeedField);
     sceneDetails.appendChild(bobbingAmplitudeField);
     sceneDetails.appendChild(durationField);
@@ -1178,6 +1196,7 @@ function loadScene(index) {
   state.dialogueY = scene.dialogueY !== undefined ? scene.dialogueY : 85;
   state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
   state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
+  state.bobbingDirection = scene.bobbingDirection !== undefined ? scene.bobbingDirection : 'vertical';
   state.bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
   state.bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
 
