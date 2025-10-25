@@ -31,6 +31,10 @@ const state = {
   showDialogue: true,
   charName: 'Hero',
   dialogueText: 'Welcome to the adventure!',
+  nameX: 50,
+  nameY: 75,
+  dialogueX: 50,
+  dialogueY: 85,
   boxColor: '#7c5941',
   textColor: '#2d1f1f',
   frames: [],
@@ -222,13 +226,17 @@ function drawDialogueBox(partialText = null, sceneBoxStyle = null) {
 
   ctx.fillStyle = textColor;
   ctx.font = `bold 24px ${state.fontFamily}`;
-  ctx.fillText(state.charName, boxX + 60, boxY + 45);
+  const nameXPos = (canvas.width * state.nameX / 100);
+  const nameYPos = (canvas.height * state.nameY / 100);
+  ctx.fillText(state.charName, nameXPos, nameYPos);
 
   ctx.font = `20px ${state.fontFamily}`;
   const textToDisplay = partialText !== null ? partialText : state.dialogueText;
   const lines = wrapText(textToDisplay, boxWidth - 120);
+  const dialogueXPos = (canvas.width * state.dialogueX / 100);
+  const dialogueYPos = (canvas.height * state.dialogueY / 100);
   lines.forEach((line, index) => {
-    ctx.fillText(line, boxX + 60, boxY + 85 + (index * 30));
+    ctx.fillText(line, dialogueXPos, dialogueYPos + (index * 30));
   });
 }
 
@@ -568,6 +576,42 @@ document.getElementById('dialogueText').addEventListener('input', (e) => {
   drawScene();
 });
 
+document.getElementById('nameXPos').addEventListener('input', (e) => {
+  state.nameX = parseInt(e.target.value);
+  document.getElementById('nameXValue').textContent = e.target.value;
+  if (state.currentSceneIndex >= 0) {
+    state.scenes[state.currentSceneIndex].nameX = parseInt(e.target.value);
+  }
+  drawScene();
+});
+
+document.getElementById('nameYPos').addEventListener('input', (e) => {
+  state.nameY = parseInt(e.target.value);
+  document.getElementById('nameYValue').textContent = e.target.value;
+  if (state.currentSceneIndex >= 0) {
+    state.scenes[state.currentSceneIndex].nameY = parseInt(e.target.value);
+  }
+  drawScene();
+});
+
+document.getElementById('dialogueXPos').addEventListener('input', (e) => {
+  state.dialogueX = parseInt(e.target.value);
+  document.getElementById('dialogueXValue').textContent = e.target.value;
+  if (state.currentSceneIndex >= 0) {
+    state.scenes[state.currentSceneIndex].dialogueX = parseInt(e.target.value);
+  }
+  drawScene();
+});
+
+document.getElementById('dialogueYPos').addEventListener('input', (e) => {
+  state.dialogueY = parseInt(e.target.value);
+  document.getElementById('dialogueYValue').textContent = e.target.value;
+  if (state.currentSceneIndex >= 0) {
+    state.scenes[state.currentSceneIndex].dialogueY = parseInt(e.target.value);
+  }
+  drawScene();
+});
+
 document.getElementById('boxColor').addEventListener('input', (e) => {
   state.boxColor = e.target.value;
   if (state.currentSceneIndex >= 0) {
@@ -871,6 +915,10 @@ function createScene() {
     ornateCornerColor: state.ornateCornerColor,
     boxColor: state.boxColor,
     textColor: state.textColor,
+    nameX: state.nameX,
+    nameY: state.nameY,
+    dialogueX: state.dialogueX,
+    dialogueY: state.dialogueY,
     char1Index: state.selectedChar1,
     char2Index: state.selectedChar2,
     bgIndex: state.selectedBg,
@@ -1068,6 +1116,10 @@ function loadScene(index) {
   state.charName = scene.charName;
   state.dialogueText = scene.dialogueText;
   state.activeSpeaker = scene.speaker;
+  state.nameX = scene.nameX !== undefined ? scene.nameX : 50;
+  state.nameY = scene.nameY !== undefined ? scene.nameY : 75;
+  state.dialogueX = scene.dialogueX !== undefined ? scene.dialogueX : 50;
+  state.dialogueY = scene.dialogueY !== undefined ? scene.dialogueY : 85;
 
   if (scene.char1Index !== undefined && scene.char1Index !== null) {
     state.selectedChar1 = scene.char1Index;
