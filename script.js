@@ -84,7 +84,7 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const charWidth = state.charImage.width * scaleFactor;
     const charHeight = state.charImage.height * scaleFactor;
     const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char1' || state.bobbingTarget === 'both');
-    const bobOffset = shouldBob ? Math.sin(animationTime * 0.001 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
+    const bobOffset = shouldBob ? Math.sin(animationTime * 0.002 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
     const xOffset = state.bobbingDirection === 'horizontal' ? bobOffset : 0;
     const yOffset = state.bobbingDirection === 'vertical' ? bobOffset : 0;
     const x = (canvas.width * state.charX / 100) - (charWidth / 2) + xOffset;
@@ -106,7 +106,7 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const charWidth = state.char2Image.width * scaleFactor;
     const charHeight = state.char2Image.height * scaleFactor;
     const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char2' || state.bobbingTarget === 'both');
-    const bobOffset = shouldBob ? Math.sin(animationTime * 0.001 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
+    const bobOffset = shouldBob ? Math.sin(animationTime * 0.002 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
     const xOffset = state.bobbingDirection === 'horizontal' ? bobOffset : 0;
     const yOffset = state.bobbingDirection === 'vertical' ? bobOffset : 0;
     const x = (canvas.width * state.char2X / 100) - (charWidth / 2) + xOffset;
