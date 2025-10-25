@@ -703,30 +703,6 @@ document.getElementById('clearFontBtn').addEventListener('click', () => {
   document.getElementById('fontInput').value = '';
 });
 
-document.getElementById('customBoxInput').addEventListener('change', (e) => {
-  if (e.target.files[0]) {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        state.customBoxImage = img;
-        drawScene();
-      };
-      img.src = event.target.result;
-    };
-
-    reader.readAsDataURL(file);
-  }
-});
-
-document.getElementById('clearCustomBoxBtn').addEventListener('click', () => {
-  state.customBoxImage = null;
-  document.getElementById('customBoxInput').value = '';
-  drawScene();
-});
-
 function updateTextBoxSelect() {
   const select = document.getElementById('textBoxSelect');
   select.innerHTML = '<option value="">Simple (Generated)</option>';
