@@ -31,9 +31,9 @@ const state = {
   showDialogue: true,
   charName: 'Hero',
   dialogueText: 'Welcome to the adventure!',
-  nameX: 50,
+  nameX: 10,
   nameY: 75,
-  dialogueX: 50,
+  dialogueX: 10,
   dialogueY: 85,
   boxColor: '#7c5941',
   textColor: '#2d1f1f',
@@ -1116,9 +1116,9 @@ function loadScene(index) {
   state.charName = scene.charName;
   state.dialogueText = scene.dialogueText;
   state.activeSpeaker = scene.speaker;
-  state.nameX = scene.nameX !== undefined ? scene.nameX : 50;
+  state.nameX = scene.nameX !== undefined ? scene.nameX : 10;
   state.nameY = scene.nameY !== undefined ? scene.nameY : 75;
-  state.dialogueX = scene.dialogueX !== undefined ? scene.dialogueX : 50;
+  state.dialogueX = scene.dialogueX !== undefined ? scene.dialogueX : 10;
   state.dialogueY = scene.dialogueY !== undefined ? scene.dialogueY : 85;
 
   if (scene.char1Index !== undefined && scene.char1Index !== null) {
