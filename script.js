@@ -54,10 +54,12 @@ const state = {
   selectedBg: null
 };
 
-function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null) {
+function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null, fadeOpacity = 1) {
   const activeSpeaker = speakerOverride !== null ? speakerOverride : state.activeSpeaker;
   ctx.fillStyle = '#2c3e50';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.globalAlpha = fadeOpacity;
 
   if (state.bgImage) {
     const scaleFactor = state.bgScale / 100;
@@ -109,6 +111,8 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
   if (state.showDialogue) {
     drawDialogueBox(partialText, sceneBoxStyle);
   }
+
+  ctx.globalAlpha = 1;
 }
 
 function drawDecorativeCorner(x, y, size, rotation) {
@@ -713,6 +717,21 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         state.bgImage = null;
       }
 
+      if (scene.transitionType === 'fade' && scene.transitionDuration > 0) {
+        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+        for (let i = 0; i < transitionFrames; i++) {
+          const fadeOpacity = i / transitionFrames;
+          animationTime = frameTime;
+          drawScene('', scene.speaker, scene, fadeOpacity);
+          await new Promise(resolve => requestAnimationFrame(resolve));
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          frames.push({ data: imageData.data, delay: state.typingSpeed });
+
+          frameTime += state.typingSpeed;
+        }
+      }
+
       for (let i = 0; i <= text.length; i++) {
         const partialText = text.substring(0, i);
         animationTime = frameTime;
@@ -826,7 +845,9 @@ function createScene() {
     textColor: state.textColor,
     char1Index: state.selectedChar1,
     char2Index: state.selectedChar2,
-    bgIndex: state.selectedBg
+    bgIndex: state.selectedBg,
+    transitionType: 'none',
+    transitionDuration: 500
   };
 }
 
@@ -951,6 +972,26 @@ function renderScenes() {
         oninput="this.previousElementSibling.querySelector('span').textContent = formatDuration(this.value); updateScene(${index}, 'duration', parseInt(this.value))" />
     `;
 
+    const transitionField = document.createElement('div');
+    transitionField.className = 'scene-field';
+    const currentTransition = scene.transitionType || 'none';
+    transitionField.innerHTML = `
+      <label>Transition Type:</label>
+      <select onchange="updateScene(${index}, 'transitionType', this.value)">
+        <option value="none" ${currentTransition === 'none' ? 'selected' : ''}>None</option>
+        <option value="fade" ${currentTransition === 'fade' ? 'selected' : ''}>Fade In</option>
+      </select>
+    `;
+
+    const transitionDurationField = document.createElement('div');
+    transitionDurationField.className = 'scene-field';
+    const transitionDurationValue = scene.transitionDuration || 500;
+    transitionDurationField.innerHTML = `
+      <label>Transition Duration: <span>${formatDuration(transitionDurationValue)}</span></label>
+      <input type="range" min="100" max="2000" step="100" value="${transitionDurationValue}"
+        oninput="this.previousElementSibling.querySelector('span').textContent = formatDuration(this.value); updateScene(${index}, 'transitionDuration', parseInt(this.value))" />
+    `;
+
     const boxStyleField = document.createElement('div');
     boxStyleField.className = 'scene-field';
     const currentBoxStyle = scene.boxStyle || 'simple';
@@ -982,6 +1023,8 @@ function renderScenes() {
     sceneDetails.appendChild(char2ImageField);
     sceneDetails.appendChild(speakerField);
     sceneDetails.appendChild(durationField);
+    sceneDetails.appendChild(transitionField);
+    sceneDetails.appendChild(transitionDurationField);
     sceneDetails.appendChild(boxStyleField);
     sceneDetails.appendChild(ornateColorsField);
     sceneItem.appendChild(sceneDetails);
@@ -1177,6 +1220,17 @@ async function exportAsMP4() {
         state.bgImage = state.bgLibrary[scene.bgIndex]?.image || null;
       } else {
         state.bgImage = null;
+      }
+
+      if (scene.transitionType === 'fade' && scene.transitionDuration > 0) {
+        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+        for (let i = 0; i < transitionFrames; i++) {
+          const fadeOpacity = i / transitionFrames;
+          animationTime = frameTime;
+          drawScene('', scene.speaker, scene, fadeOpacity);
+          await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
+          frameTime += state.typingSpeed;
+        }
       }
 
       for (let i = 0; i <= text.length; i++) {
