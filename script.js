@@ -1143,7 +1143,7 @@ function renderScenes() {
     const currentBoxStyle = scene.boxStyle || 'simple';
     boxStyleField.innerHTML = `
       <label>Dialogue Box Style:</label>
-      <select onchange="updateScene(${index}, 'boxStyle', this.value)">
+      <select onchange="updateSceneBoxStyle(${index}, this.value)">
         <option value="simple" ${currentBoxStyle === 'simple' ? 'selected' : ''}>Simple</option>
         <option value="ornate" ${currentBoxStyle === 'ornate' ? 'selected' : ''}>Ornate</option>
         <option value="custom" ${currentBoxStyle === 'custom' ? 'selected' : ''}>Custom Image</option>
@@ -1162,6 +1162,15 @@ function renderScenes() {
       <input type="color" value="${scene.ornateCornerColor || '#8b4545'}" onchange="updateScene(${index}, 'ornateCornerColor', this.value)" />
     `;
 
+    const customBoxImageField = document.createElement('div');
+    customBoxImageField.className = 'scene-field';
+    customBoxImageField.style.display = currentBoxStyle === 'custom' ? 'block' : 'none';
+    customBoxImageField.innerHTML = `
+      <label>Custom Box Image:</label>
+      <input type="file" accept="image/*" onchange="handleSceneBoxImageUpload(${index}, this.files[0])" />
+      ${scene.customBoxImage ? '<small style="color: #667eea;">Image uploaded</small>' : '<small>No image uploaded</small>'}
+    `;
+
     sceneDetails.appendChild(nameField);
     sceneDetails.appendChild(textField);
     sceneDetails.appendChild(bgImageField);
@@ -1178,6 +1187,7 @@ function renderScenes() {
     sceneDetails.appendChild(transitionDurationField);
     sceneDetails.appendChild(boxStyleField);
     sceneDetails.appendChild(ornateColorsField);
+    sceneDetails.appendChild(customBoxImageField);
     sceneItem.appendChild(sceneDetails);
 
     scenesList.appendChild(sceneItem);
@@ -1265,6 +1275,27 @@ window.updateScene = function(index, field, value) {
 };
 
 window.formatDuration = formatDuration;
+
+window.handleSceneBoxImageUpload = async function(index, file) {
+  if (file) {
+    const img = await loadImage(file);
+    state.scenes[index].customBoxImage = img;
+    if (index === state.currentSceneIndex) {
+      state.customBoxImage = img;
+    }
+    renderScenes();
+    drawScene(null, null, state.scenes[index]);
+  }
+};
+
+window.updateSceneBoxStyle = function(index, value) {
+  state.scenes[index].boxStyle = value;
+  if (index === state.currentSceneIndex) {
+    state.boxStyle = value;
+    drawScene(null, null, state.scenes[index]);
+  }
+  renderScenes();
+};
 
 function deleteScene(index) {
   state.scenes.splice(index, 1);
