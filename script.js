@@ -1095,8 +1095,8 @@ function renderScenes() {
     const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
     bobbingSpeedField.innerHTML = `
       <label>Bobbing Speed: <span>${bobbingSpeed}</span></label>
-      <input type="range" min="0.5" max="10" step="0.5" value="${bobbingSpeed}"
-        oninput="this.previousElementSibling.querySelector('span').textContent = this.value; updateScene(${index}, 'bobbingSpeed', parseFloat(this.value))" />
+      <input type="range" min="1" max="20" step="1" value="${bobbingSpeed}"
+        oninput="this.previousElementSibling.querySelector('span').textContent = this.value; updateScene(${index}, 'bobbingSpeed', parseInt(this.value))" />
     `;
 
     const bobbingAmplitudeField = document.createElement('div');
