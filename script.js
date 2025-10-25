@@ -54,12 +54,12 @@ const state = {
   selectedBg: null
 };
 
-function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null, fadeOpacity = 1) {
+function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null, fadeOpacity = 1, fadeType = null) {
   const activeSpeaker = speakerOverride !== null ? speakerOverride : state.activeSpeaker;
   ctx.fillStyle = '#2c3e50';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.globalAlpha = fadeOpacity;
+  ctx.globalAlpha = 1;
 
   if (state.bgImage) {
     const scaleFactor = state.bgScale / 100;
@@ -110,6 +110,16 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
 
   if (state.showDialogue) {
     drawDialogueBox(partialText, sceneBoxStyle);
+  }
+
+  if (fadeType === 'fadeIn') {
+    ctx.globalAlpha = 1 - fadeOpacity;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (fadeType === 'fadeOut') {
+    ctx.globalAlpha = fadeOpacity;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   ctx.globalAlpha = 1;
@@ -717,12 +727,12 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         state.bgImage = null;
       }
 
-      if (scene.transitionType === 'fade' && scene.transitionDuration > 0) {
+      if (scene.transitionType === 'fadeIn' && scene.transitionDuration > 0) {
         const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
         for (let i = 0; i < transitionFrames; i++) {
           const fadeOpacity = i / transitionFrames;
           animationTime = frameTime;
-          drawScene('', scene.speaker, scene, fadeOpacity);
+          drawScene('', scene.speaker, scene, fadeOpacity, 'fadeIn');
           await new Promise(resolve => requestAnimationFrame(resolve));
 
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -756,6 +766,21 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         frames.push({ data: imageData.data, delay: state.typingSpeed });
 
         frameTime += state.typingSpeed;
+      }
+
+      if (scene.transitionType === 'fadeOut' && scene.transitionDuration > 0) {
+        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+        for (let i = 0; i < transitionFrames; i++) {
+          const fadeOpacity = i / transitionFrames;
+          animationTime = frameTime;
+          drawScene(text, scene.speaker, scene, fadeOpacity, 'fadeOut');
+          await new Promise(resolve => requestAnimationFrame(resolve));
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          frames.push({ data: imageData.data, delay: state.typingSpeed });
+
+          frameTime += state.typingSpeed;
+        }
       }
 
       Object.assign(state, savedState);
@@ -979,7 +1004,8 @@ function renderScenes() {
       <label>Transition Type:</label>
       <select onchange="updateScene(${index}, 'transitionType', this.value)">
         <option value="none" ${currentTransition === 'none' ? 'selected' : ''}>None</option>
-        <option value="fade" ${currentTransition === 'fade' ? 'selected' : ''}>Fade In</option>
+        <option value="fadeIn" ${currentTransition === 'fadeIn' ? 'selected' : ''}>Fade In from Black</option>
+        <option value="fadeOut" ${currentTransition === 'fadeOut' ? 'selected' : ''}>Fade Out to Black</option>
       </select>
     `;
 
@@ -1222,12 +1248,12 @@ async function exportAsMP4() {
         state.bgImage = null;
       }
 
-      if (scene.transitionType === 'fade' && scene.transitionDuration > 0) {
+      if (scene.transitionType === 'fadeIn' && scene.transitionDuration > 0) {
         const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
         for (let i = 0; i < transitionFrames; i++) {
           const fadeOpacity = i / transitionFrames;
           animationTime = frameTime;
-          drawScene('', scene.speaker, scene, fadeOpacity);
+          drawScene('', scene.speaker, scene, fadeOpacity, 'fadeIn');
           await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
           frameTime += state.typingSpeed;
         }
@@ -1255,6 +1281,17 @@ async function exportAsMP4() {
         }, 16);
       });
       frameTime += holdDuration;
+
+      if (scene.transitionType === 'fadeOut' && scene.transitionDuration > 0) {
+        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+        for (let i = 0; i < transitionFrames; i++) {
+          const fadeOpacity = i / transitionFrames;
+          animationTime = frameTime;
+          drawScene(text, scene.speaker, scene, fadeOpacity, 'fadeOut');
+          await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
+          frameTime += state.typingSpeed;
+        }
+      }
 
       Object.assign(state, savedState);
 
