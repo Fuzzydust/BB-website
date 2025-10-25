@@ -60,7 +60,9 @@ const state = {
   selectedChar1: null,
   selectedChar2: null,
   bgLibrary: [],
-  selectedBg: null
+  selectedBg: null,
+  textBoxLibrary: [],
+  selectedTextBox: null
 };
 
 function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null, fadeOpacity = 1, fadeType = null) {
@@ -204,7 +206,11 @@ function drawDialogueBox(partialText = null, sceneBoxStyle = null) {
   const boxColor = sceneBoxStyle?.boxColor || state.boxColor;
   const textColor = sceneBoxStyle?.textColor || state.textColor;
 
-  if (boxStyle === 'custom' && customBoxImage) {
+  const activeTextBoxImage = state.selectedTextBox !== null ? state.textBoxLibrary[state.selectedTextBox]?.image : null;
+
+  if (activeTextBoxImage) {
+    ctx.drawImage(activeTextBoxImage, boxX, boxY, boxWidth, boxHeight);
+  } else if (boxStyle === 'custom' && customBoxImage) {
     ctx.drawImage(customBoxImage, boxX, boxY, boxWidth, boxHeight);
   } else {
     ctx.fillStyle = boxColor;
@@ -721,6 +727,62 @@ document.getElementById('clearCustomBoxBtn').addEventListener('click', () => {
   drawScene();
 });
 
+function updateTextBoxSelect() {
+  const select = document.getElementById('textBoxSelect');
+  select.innerHTML = '<option value="">Simple (Generated)</option>';
+  state.textBoxLibrary.forEach((item, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  if (state.selectedTextBox !== null) {
+    select.value = state.selectedTextBox;
+  }
+}
+
+document.getElementById('textBoxImageInput').addEventListener('change', async (e) => {
+  if (e.target.files[0]) {
+    const nameInput = document.getElementById('textBoxNameInput');
+    const name = nameInput.value.trim() || `Text Box ${state.textBoxLibrary.length + 1}`;
+    const img = await loadImage(e.target.files[0]);
+
+    state.textBoxLibrary.push({ name, image: img });
+    state.selectedTextBox = state.textBoxLibrary.length - 1;
+
+    updateTextBoxSelect();
+    renderScenes();
+    nameInput.value = '';
+    e.target.value = '';
+    drawScene();
+  }
+});
+
+document.getElementById('textBoxSelect').addEventListener('change', (e) => {
+  const index = e.target.value;
+  if (index === '') {
+    state.selectedTextBox = null;
+  } else {
+    state.selectedTextBox = parseInt(index);
+  }
+  drawScene();
+});
+
+document.getElementById('clearTextBoxBtn').addEventListener('click', () => {
+  state.selectedTextBox = null;
+  document.getElementById('textBoxSelect').value = '';
+  drawScene();
+});
+
+document.getElementById('clearTextBoxLibraryBtn').addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear all text boxes?')) {
+    state.textBoxLibrary = [];
+    state.selectedTextBox = null;
+    updateTextBoxSelect();
+    drawScene();
+  }
+});
+
 document.getElementById('exportGifBtn').addEventListener('click', async () => {
   const statusDiv = document.getElementById('exportStatus');
 
@@ -938,6 +1000,7 @@ function createScene() {
     char1Index: state.selectedChar1,
     char2Index: state.selectedChar2,
     bgIndex: state.selectedBg,
+    textBoxIndex: state.selectedTextBox,
     transitionType: 'none',
     transitionDuration: 500
   };
@@ -1041,6 +1104,19 @@ function renderScenes() {
       <select onchange="updateScene(${index}, 'bgIndex', this.value === '' ? null : parseInt(this.value))">
         <option value="" ${scene.bgIndex === null || scene.bgIndex === undefined ? 'selected' : ''}>None</option>
         ${bgOptions}
+      </select>
+    `;
+
+    const textBoxField = document.createElement('div');
+    textBoxField.className = 'scene-field';
+    const textBoxOptions = state.textBoxLibrary.map((item, idx) =>
+      `<option value="${idx}" ${scene.textBoxIndex === idx ? 'selected' : ''}>${item.name}</option>`
+    ).join('');
+    textBoxField.innerHTML = `
+      <label>Text Box:</label>
+      <select onchange="updateScene(${index}, 'textBoxIndex', this.value === '' ? null : parseInt(this.value))">
+        <option value="" ${scene.textBoxIndex === null || scene.textBoxIndex === undefined ? 'selected' : ''}>Simple (Generated)</option>
+        ${textBoxOptions}
       </select>
     `;
 
@@ -1176,6 +1252,7 @@ function renderScenes() {
     sceneDetails.appendChild(bgImageField);
     sceneDetails.appendChild(char1ImageField);
     sceneDetails.appendChild(char2ImageField);
+    sceneDetails.appendChild(textBoxField);
     sceneDetails.appendChild(speakerField);
     sceneDetails.appendChild(bobbingEnabledField);
     sceneDetails.appendChild(bobbingTargetField);
@@ -1240,6 +1317,14 @@ function loadScene(index) {
     document.getElementById('bgSelect').value = '';
   }
 
+  if (scene.textBoxIndex !== undefined && scene.textBoxIndex !== null) {
+    state.selectedTextBox = scene.textBoxIndex;
+    document.getElementById('textBoxSelect').value = scene.textBoxIndex;
+  } else {
+    state.selectedTextBox = null;
+    document.getElementById('textBoxSelect').value = '';
+  }
+
   document.getElementById('charName').value = scene.charName;
   document.getElementById('dialogueText').value = scene.dialogueText;
   document.getElementById('boxColor').value = state.boxColor;
@@ -1266,6 +1351,9 @@ window.updateScene = function(index, field, value) {
       state.selectedBg = value;
       state.bgImage = value !== null ? state.bgLibrary[value]?.image || null : null;
       document.getElementById('bgSelect').value = value !== null ? value : '';
+    } else if (field === 'textBoxIndex') {
+      state.selectedTextBox = value;
+      document.getElementById('textBoxSelect').value = value !== null ? value : '';
     } else if (!['boxStyle', 'ornateBorderColor', 'ornateAccentColor', 'ornateCornerColor', 'customBoxImage'].includes(field)) {
       state[field] = value;
     }

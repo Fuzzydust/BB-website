@@ -116,6 +116,25 @@
           </section>
 
           <section class="control-section">
+            <h2 class="collapsible-header">Text Box Library</h2>
+            <div class="collapsible-content">
+            <div class="input-group">
+              <label>Add Text Box to Library:</label>
+              <input type="text" id="textBoxNameInput" placeholder="Text box name (e.g., Basic, Fancy)" />
+              <input type="file" id="textBoxImageInput" accept="image/*" />
+            </div>
+            <div class="input-group">
+              <label>Select Text Box:</label>
+              <select id="textBoxSelect">
+                <option value="">Simple (Generated)</option>
+              </select>
+            </div>
+            <button id="clearTextBoxBtn" class="secondary-btn">Clear Text Box</button>
+            <button id="clearTextBoxLibraryBtn" class="secondary-btn">Clear All Text Boxes</button>
+            </div>
+          </section>
+
+          <section class="control-section">
             <h2 class="collapsible-header">Dialogue Box</h2>
             <div class="collapsible-content">
             <div class="checkbox-control">
@@ -154,12 +173,6 @@
               <label>Text Color:</label>
               <input type="color" id="textColor" value="#2d1f1f" />
             </div>
-            <div class="input-group">
-              <label>Custom Box Image:</label>
-              <input type="file" id="customBoxInput" accept="image/*" />
-              <small style="color: #666; display: block; margin-top: 4px;">Recommended dimensions: 760x160 pixels</small>
-            </div>
-            <button id="clearCustomBoxBtn" class="secondary-btn">Clear Custom Box</button>
             </div>
           </section>
 
