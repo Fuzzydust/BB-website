@@ -762,6 +762,18 @@ document.getElementById('clearTextBoxLibraryBtn').addEventListener('click', () =
 async function loadDefaultTextBoxes() {
   const defaultBoxes = [
     { name: 'Caligo', path: 'images/Caligo.png' },
+    { name: 'Classic Black', path: 'images/Classic_Black.png' },
+    { name: 'Classic Blue', path: 'images/Classic_Blue.png' },
+    { name: 'Classic Brown', path: 'images/Classic_Brown.png' },
+    { name: 'Classic Cyan', path: 'images/Classic_Cyan.png' },
+    { name: 'Classic Green', path: 'images/Classic_Green.png' },
+    { name: 'Classic Light Blue', path: 'images/Classic_Light_Blue.png' },
+    { name: 'Classic Lime Green', path: 'images/Classic_Lime_Green.png' },
+    { name: 'Classic Peach', path: 'images/Classic_Peach.png' },
+    { name: 'Classic Pink', path: 'images/Classic_Pink.png' },
+    { name: 'Classic Purple', path: 'images/Classic_Purple.png' },
+    { name: 'Classic White', path: 'images/Classic_White.png' },
+    { name: 'Classic Yellow', path: 'images/Classic_Yellow.png' },
     { name: 'Flower Theatre', path: 'images/Flower_Theatre.png' },
     { name: 'Henri', path: 'images/Henri.png' }
   ];
