@@ -761,9 +761,9 @@ document.getElementById('clearTextBoxLibraryBtn').addEventListener('click', () =
 
 async function loadDefaultTextBoxes() {
   const defaultBoxes = [
-    { name: 'Simple Brown', path: 'images/textbox1-simple.svg' },
-    { name: 'Blue Modern', path: 'images/textbox2-blue.svg' },
-    { name: 'Dark Fantasy', path: 'images/textbox3-dark.svg' }
+    { name: 'Caligo', path: 'images/Caligo.png' },
+    { name: 'Flower Theatre', path: 'images/Flower_Theatre.png' },
+    { name: 'Henri', path: 'images/Henri.png' }
   ];
 
   for (const box of defaultBoxes) {
