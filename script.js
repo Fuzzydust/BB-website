@@ -45,7 +45,11 @@ const state = {
   ornateCornerColor: '#8b4545',
   scenes: [],
   currentSceneIndex: -1,
-  activeSpeaker: 'none'
+  activeSpeaker: 'none',
+  char1Library: [],
+  char2Library: [],
+  selectedChar1: null,
+  selectedChar2: null
 };
 
 function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null) {
@@ -271,11 +275,63 @@ document.getElementById('bgImageInput').addEventListener('change', async (e) => 
   }
 });
 
+function updateChar1Select() {
+  const select = document.getElementById('char1Select');
+  select.innerHTML = '<option value="">None</option>';
+  state.char1Library.forEach((item, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  if (state.selectedChar1 !== null) {
+    select.value = state.selectedChar1;
+  }
+}
+
+function updateChar2Select() {
+  const select = document.getElementById('char2Select');
+  select.innerHTML = '<option value="">None</option>';
+  state.char2Library.forEach((item, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  if (state.selectedChar2 !== null) {
+    select.value = state.selectedChar2;
+  }
+}
+
 document.getElementById('charImageInput').addEventListener('change', async (e) => {
   if (e.target.files[0]) {
-    state.charImage = await loadImage(e.target.files[0]);
+    const nameInput = document.getElementById('char1NameInput');
+    const name = nameInput.value.trim() || `Image ${state.char1Library.length + 1}`;
+    const img = await loadImage(e.target.files[0]);
+
+    state.char1Library.push({ name, image: img });
+    state.selectedChar1 = state.char1Library.length - 1;
+    state.charImage = img;
+
+    updateChar1Select();
+    nameInput.value = '';
+    e.target.value = '';
     startAnimation();
   }
+});
+
+document.getElementById('char1Select').addEventListener('change', (e) => {
+  const index = e.target.value;
+  if (index === '') {
+    state.selectedChar1 = null;
+    state.charImage = null;
+    stopAnimation();
+  } else {
+    state.selectedChar1 = parseInt(index);
+    state.charImage = state.char1Library[state.selectedChar1].image;
+    startAnimation();
+  }
+  drawScene();
 });
 
 document.getElementById('clearBgBtn').addEventListener('click', () => {
@@ -314,15 +370,45 @@ document.getElementById('charScale').addEventListener('input', (e) => {
 
 document.getElementById('char2ImageInput').addEventListener('change', async (e) => {
   if (e.target.files[0]) {
-    state.char2Image = await loadImage(e.target.files[0]);
+    const nameInput = document.getElementById('char2NameInput');
+    const name = nameInput.value.trim() || `Image ${state.char2Library.length + 1}`;
+    const img = await loadImage(e.target.files[0]);
+
+    state.char2Library.push({ name, image: img });
+    state.selectedChar2 = state.char2Library.length - 1;
+    state.char2Image = img;
+
+    updateChar2Select();
+    nameInput.value = '';
+    e.target.value = '';
     if (!animationFrameId && (state.charImage || state.char2Image)) {
       startAnimation();
     }
   }
 });
 
+document.getElementById('char2Select').addEventListener('change', (e) => {
+  const index = e.target.value;
+  if (index === '') {
+    state.selectedChar2 = null;
+    state.char2Image = null;
+    if (!state.charImage) {
+      stopAnimation();
+    }
+  } else {
+    state.selectedChar2 = parseInt(index);
+    state.char2Image = state.char2Library[state.selectedChar2].image;
+    if (!animationFrameId && (state.charImage || state.char2Image)) {
+      startAnimation();
+    }
+  }
+  drawScene();
+});
+
 document.getElementById('clearChar2Btn').addEventListener('click', () => {
   state.char2Image = null;
+  state.selectedChar2 = null;
+  document.getElementById('char2Select').value = '';
   if (!state.charImage) {
     stopAnimation();
   }
@@ -527,12 +613,26 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
       const savedState = {
         charName: state.charName,
         dialogueText: state.dialogueText,
-        activeSpeaker: state.activeSpeaker
+        activeSpeaker: state.activeSpeaker,
+        charImage: state.charImage,
+        char2Image: state.char2Image
       };
 
       state.charName = scene.charName;
       state.dialogueText = scene.dialogueText;
       state.activeSpeaker = scene.speaker;
+
+      if (scene.char1Index !== undefined && scene.char1Index !== null) {
+        state.charImage = state.char1Library[scene.char1Index]?.image || null;
+      } else {
+        state.charImage = null;
+      }
+
+      if (scene.char2Index !== undefined && scene.char2Index !== null) {
+        state.char2Image = state.char2Library[scene.char2Index]?.image || null;
+      } else {
+        state.char2Image = null;
+      }
 
       for (let i = 0; i <= text.length; i++) {
         const partialText = text.substring(0, i);
@@ -644,7 +744,9 @@ function createScene() {
     ornateAccentColor: state.ornateAccentColor,
     ornateCornerColor: state.ornateCornerColor,
     boxColor: state.boxColor,
-    textColor: state.textColor
+    textColor: state.textColor,
+    char1Index: state.selectedChar1,
+    char2Index: state.selectedChar2
   };
 }
 
@@ -710,6 +812,32 @@ function renderScenes() {
       <textarea onchange="updateScene(${index}, 'dialogueText', this.value)">${scene.dialogueText}</textarea>
     `;
 
+    const char1ImageField = document.createElement('div');
+    char1ImageField.className = 'scene-field';
+    const char1Options = state.char1Library.map((item, idx) =>
+      `<option value="${idx}" ${scene.char1Index === idx ? 'selected' : ''}>${item.name}</option>`
+    ).join('');
+    char1ImageField.innerHTML = `
+      <label>Character 1 Image:</label>
+      <select onchange="updateScene(${index}, 'char1Index', this.value === '' ? null : parseInt(this.value))">
+        <option value="" ${scene.char1Index === null || scene.char1Index === undefined ? 'selected' : ''}>None</option>
+        ${char1Options}
+      </select>
+    `;
+
+    const char2ImageField = document.createElement('div');
+    char2ImageField.className = 'scene-field';
+    const char2Options = state.char2Library.map((item, idx) =>
+      `<option value="${idx}" ${scene.char2Index === idx ? 'selected' : ''}>${item.name}</option>`
+    ).join('');
+    char2ImageField.innerHTML = `
+      <label>Character 2 Image:</label>
+      <select onchange="updateScene(${index}, 'char2Index', this.value === '' ? null : parseInt(this.value))">
+        <option value="" ${scene.char2Index === null || scene.char2Index === undefined ? 'selected' : ''}>None</option>
+        ${char2Options}
+      </select>
+    `;
+
     const speakerField = document.createElement('div');
     speakerField.className = 'scene-field';
     speakerField.innerHTML = `
@@ -756,6 +884,8 @@ function renderScenes() {
 
     sceneDetails.appendChild(nameField);
     sceneDetails.appendChild(textField);
+    sceneDetails.appendChild(char1ImageField);
+    sceneDetails.appendChild(char2ImageField);
     sceneDetails.appendChild(speakerField);
     sceneDetails.appendChild(durationField);
     sceneDetails.appendChild(boxStyleField);
@@ -773,6 +903,26 @@ function loadScene(index) {
   state.dialogueText = scene.dialogueText;
   state.activeSpeaker = scene.speaker;
 
+  if (scene.char1Index !== undefined && scene.char1Index !== null) {
+    state.selectedChar1 = scene.char1Index;
+    state.charImage = state.char1Library[scene.char1Index]?.image || null;
+    document.getElementById('char1Select').value = scene.char1Index;
+  } else {
+    state.selectedChar1 = null;
+    state.charImage = null;
+    document.getElementById('char1Select').value = '';
+  }
+
+  if (scene.char2Index !== undefined && scene.char2Index !== null) {
+    state.selectedChar2 = scene.char2Index;
+    state.char2Image = state.char2Library[scene.char2Index]?.image || null;
+    document.getElementById('char2Select').value = scene.char2Index;
+  } else {
+    state.selectedChar2 = null;
+    state.char2Image = null;
+    document.getElementById('char2Select').value = '';
+  }
+
   document.getElementById('charName').value = scene.charName;
   document.getElementById('dialogueText').value = scene.dialogueText;
   document.getElementById('boxColor').value = state.boxColor;
@@ -787,6 +937,14 @@ window.updateScene = function(index, field, value) {
   if (index === state.currentSceneIndex) {
     if (field === 'speaker') {
       state.activeSpeaker = value;
+    } else if (field === 'char1Index') {
+      state.selectedChar1 = value;
+      state.charImage = value !== null ? state.char1Library[value]?.image || null : null;
+      document.getElementById('char1Select').value = value !== null ? value : '';
+    } else if (field === 'char2Index') {
+      state.selectedChar2 = value;
+      state.char2Image = value !== null ? state.char2Library[value]?.image || null : null;
+      document.getElementById('char2Select').value = value !== null ? value : '';
     } else if (!['boxStyle', 'ornateBorderColor', 'ornateAccentColor', 'ornateCornerColor', 'customBoxImage'].includes(field)) {
       state[field] = value;
     }
@@ -885,12 +1043,26 @@ async function exportAsMP4() {
       const savedState = {
         charName: state.charName,
         dialogueText: state.dialogueText,
-        activeSpeaker: state.activeSpeaker
+        activeSpeaker: state.activeSpeaker,
+        charImage: state.charImage,
+        char2Image: state.char2Image
       };
 
       state.charName = scene.charName;
       state.dialogueText = scene.dialogueText;
       state.activeSpeaker = scene.speaker;
+
+      if (scene.char1Index !== undefined && scene.char1Index !== null) {
+        state.charImage = state.char1Library[scene.char1Index]?.image || null;
+      } else {
+        state.charImage = null;
+      }
+
+      if (scene.char2Index !== undefined && scene.char2Index !== null) {
+        state.char2Image = state.char2Library[scene.char2Index]?.image || null;
+      } else {
+        state.char2Image = null;
+      }
 
       for (let i = 0; i <= text.length; i++) {
         const partialText = text.substring(0, i);

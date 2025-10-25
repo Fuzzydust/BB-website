@@ -43,7 +43,17 @@
           <section class="control-section">
             <h2 class="collapsible-header">Character 1</h2>
             <div class="collapsible-content">
-            <input type="file" id="charImageInput" accept="image/*" />
+            <div class="input-group">
+              <label>Add Image to Library:</label>
+              <input type="text" id="char1NameInput" placeholder="Image name (e.g., Happy, Sad)" />
+              <input type="file" id="charImageInput" accept="image/*" />
+            </div>
+            <div class="input-group">
+              <label>Select Image:</label>
+              <select id="char1Select">
+                <option value="">None</option>
+              </select>
+            </div>
             <div class="slider-control">
               <label>Position X: <span id="charXValue">50</span>%</label>
               <input type="range" id="charXPos" min="0" max="100" value="50" />
@@ -64,7 +74,17 @@
           <section class="control-section">
             <h2 class="collapsible-header">Character 2</h2>
             <div class="collapsible-content">
-            <input type="file" id="char2ImageInput" accept="image/*" />
+            <div class="input-group">
+              <label>Add Image to Library:</label>
+              <input type="text" id="char2NameInput" placeholder="Image name (e.g., Happy, Sad)" />
+              <input type="file" id="char2ImageInput" accept="image/*" />
+            </div>
+            <div class="input-group">
+              <label>Select Image:</label>
+              <select id="char2Select">
+                <option value="">None</option>
+              </select>
+            </div>
             <div class="slider-control">
               <label>Position X: <span id="char2XValue">50</span>%</label>
               <input type="range" id="char2XPos" min="0" max="100" value="50" />
