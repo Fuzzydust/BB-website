@@ -50,6 +50,8 @@ const state = {
   scenes: [],
   currentSceneIndex: -1,
   activeSpeaker: 'none',
+  bobbingEnabled: true,
+  bobbingTarget: 'none',
   char1Library: [],
   char2Library: [],
   selectedChar1: null,
@@ -78,7 +80,8 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const scaleFactor = state.charScale / 100;
     const charWidth = state.charImage.width * scaleFactor;
     const charHeight = state.charImage.height * scaleFactor;
-    const bobOffset = activeSpeaker === 'char1' ? Math.sin(animationTime * 0.003) * 6 : 0;
+    const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char1' || state.bobbingTarget === 'both');
+    const bobOffset = shouldBob ? Math.sin(animationTime * 0.003) * 6 : 0;
     const x = (canvas.width * state.charX / 100) - (charWidth / 2);
     const y = (canvas.height * state.charY / 100) - (charHeight / 2) + bobOffset;
 
@@ -97,7 +100,8 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const scaleFactor = state.char2Scale / 100;
     const charWidth = state.char2Image.width * scaleFactor;
     const charHeight = state.char2Image.height * scaleFactor;
-    const bobOffset = activeSpeaker === 'char2' ? Math.sin(animationTime * 0.003) * 6 : 0;
+    const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char2' || state.bobbingTarget === 'both');
+    const bobOffset = shouldBob ? Math.sin(animationTime * 0.003) * 6 : 0;
     const x = (canvas.width * state.char2X / 100) - (charWidth / 2);
     const y = (canvas.height * state.char2Y / 100) - (charHeight / 2) + bobOffset;
 
@@ -919,6 +923,8 @@ function createScene() {
     nameY: state.nameY,
     dialogueX: state.dialogueX,
     dialogueY: state.dialogueY,
+    bobbingEnabled: state.bobbingEnabled,
+    bobbingTarget: state.bobbingTarget,
     char1Index: state.selectedChar1,
     char2Index: state.selectedChar2,
     bgIndex: state.selectedBg,
@@ -1039,6 +1045,30 @@ function renderScenes() {
       </select>
     `;
 
+    const bobbingEnabledField = document.createElement('div');
+    bobbingEnabledField.className = 'scene-field';
+    const bobbingChecked = scene.bobbingEnabled !== false;
+    bobbingEnabledField.innerHTML = `
+      <label style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" ${bobbingChecked ? 'checked' : ''}
+          onchange="updateScene(${index}, 'bobbingEnabled', this.checked)" />
+        Enable Bobbing Animation
+      </label>
+    `;
+
+    const bobbingTargetField = document.createElement('div');
+    bobbingTargetField.className = 'scene-field';
+    const bobbingTarget = scene.bobbingTarget || 'none';
+    bobbingTargetField.innerHTML = `
+      <label>Bobbing Target:</label>
+      <select onchange="updateScene(${index}, 'bobbingTarget', this.value)">
+        <option value="none" ${bobbingTarget === 'none' ? 'selected' : ''}>None</option>
+        <option value="char1" ${bobbingTarget === 'char1' ? 'selected' : ''}>Character 1</option>
+        <option value="char2" ${bobbingTarget === 'char2' ? 'selected' : ''}>Character 2</option>
+        <option value="both" ${bobbingTarget === 'both' ? 'selected' : ''}>Both Characters</option>
+      </select>
+    `;
+
     const durationField = document.createElement('div');
     durationField.className = 'scene-field';
     const durationValue = scene.duration || 2000;
@@ -1099,6 +1129,8 @@ function renderScenes() {
     sceneDetails.appendChild(char1ImageField);
     sceneDetails.appendChild(char2ImageField);
     sceneDetails.appendChild(speakerField);
+    sceneDetails.appendChild(bobbingEnabledField);
+    sceneDetails.appendChild(bobbingTargetField);
     sceneDetails.appendChild(durationField);
     sceneDetails.appendChild(transitionField);
     sceneDetails.appendChild(transitionDurationField);
@@ -1120,6 +1152,8 @@ function loadScene(index) {
   state.nameY = scene.nameY !== undefined ? scene.nameY : 75;
   state.dialogueX = scene.dialogueX !== undefined ? scene.dialogueX : 10;
   state.dialogueY = scene.dialogueY !== undefined ? scene.dialogueY : 85;
+  state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
+  state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
 
   if (scene.char1Index !== undefined && scene.char1Index !== null) {
     state.selectedChar1 = scene.char1Index;
