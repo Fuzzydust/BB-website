@@ -52,6 +52,8 @@ const state = {
   activeSpeaker: 'none',
   bobbingEnabled: true,
   bobbingTarget: 'none',
+  bobbingSpeed: 3,
+  bobbingAmplitude: 6,
   char1Library: [],
   char2Library: [],
   selectedChar1: null,
@@ -81,7 +83,7 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const charWidth = state.charImage.width * scaleFactor;
     const charHeight = state.charImage.height * scaleFactor;
     const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char1' || state.bobbingTarget === 'both');
-    const bobOffset = shouldBob ? Math.sin(animationTime * 0.003) * 6 : 0;
+    const bobOffset = shouldBob ? Math.sin(animationTime * 0.001 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
     const x = (canvas.width * state.charX / 100) - (charWidth / 2);
     const y = (canvas.height * state.charY / 100) - (charHeight / 2) + bobOffset;
 
@@ -101,7 +103,7 @@ function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = n
     const charWidth = state.char2Image.width * scaleFactor;
     const charHeight = state.char2Image.height * scaleFactor;
     const shouldBob = state.bobbingEnabled && (state.bobbingTarget === 'char2' || state.bobbingTarget === 'both');
-    const bobOffset = shouldBob ? Math.sin(animationTime * 0.003) * 6 : 0;
+    const bobOffset = shouldBob ? Math.sin(animationTime * 0.001 * state.bobbingSpeed) * state.bobbingAmplitude : 0;
     const x = (canvas.width * state.char2X / 100) - (charWidth / 2);
     const y = (canvas.height * state.char2Y / 100) - (charHeight / 2) + bobOffset;
 
@@ -925,6 +927,8 @@ function createScene() {
     dialogueY: state.dialogueY,
     bobbingEnabled: state.bobbingEnabled,
     bobbingTarget: state.bobbingTarget,
+    bobbingSpeed: state.bobbingSpeed,
+    bobbingAmplitude: state.bobbingAmplitude,
     char1Index: state.selectedChar1,
     char2Index: state.selectedChar2,
     bgIndex: state.selectedBg,
@@ -1069,6 +1073,24 @@ function renderScenes() {
       </select>
     `;
 
+    const bobbingSpeedField = document.createElement('div');
+    bobbingSpeedField.className = 'scene-field';
+    const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
+    bobbingSpeedField.innerHTML = `
+      <label>Bobbing Speed: <span>${bobbingSpeed}</span></label>
+      <input type="range" min="0.5" max="10" step="0.5" value="${bobbingSpeed}"
+        oninput="this.previousElementSibling.querySelector('span').textContent = this.value; updateScene(${index}, 'bobbingSpeed', parseFloat(this.value))" />
+    `;
+
+    const bobbingAmplitudeField = document.createElement('div');
+    bobbingAmplitudeField.className = 'scene-field';
+    const bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
+    bobbingAmplitudeField.innerHTML = `
+      <label>Bobbing Amplitude: <span>${bobbingAmplitude}px</span></label>
+      <input type="range" min="1" max="20" step="1" value="${bobbingAmplitude}"
+        oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 'px'; updateScene(${index}, 'bobbingAmplitude', parseInt(this.value))" />
+    `;
+
     const durationField = document.createElement('div');
     durationField.className = 'scene-field';
     const durationValue = scene.duration || 2000;
@@ -1131,6 +1153,8 @@ function renderScenes() {
     sceneDetails.appendChild(speakerField);
     sceneDetails.appendChild(bobbingEnabledField);
     sceneDetails.appendChild(bobbingTargetField);
+    sceneDetails.appendChild(bobbingSpeedField);
+    sceneDetails.appendChild(bobbingAmplitudeField);
     sceneDetails.appendChild(durationField);
     sceneDetails.appendChild(transitionField);
     sceneDetails.appendChild(transitionDurationField);
@@ -1154,6 +1178,8 @@ function loadScene(index) {
   state.dialogueY = scene.dialogueY !== undefined ? scene.dialogueY : 85;
   state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
   state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
+  state.bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
+  state.bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
 
   if (scene.char1Index !== undefined && scene.char1Index !== null) {
     state.selectedChar1 = scene.char1Index;
