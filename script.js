@@ -52,7 +52,7 @@ const state = {
   activeSpeaker: 'none',
   bobbingEnabled: true,
   bobbingTarget: 'none',
-  bobbingSpeed: 3,
+  bobbingSpeed: 2,
   bobbingAmplitude: 6,
   bobbingDirection: 'vertical',
   char1Library: [],
@@ -1092,10 +1092,10 @@ function renderScenes() {
 
     const bobbingSpeedField = document.createElement('div');
     bobbingSpeedField.className = 'scene-field';
-    const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
+    const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 2;
     bobbingSpeedField.innerHTML = `
       <label>Bobbing Speed: <span>${bobbingSpeed}</span></label>
-      <input type="range" min="1" max="20" step="1" value="${bobbingSpeed}"
+      <input type="range" min="1" max="5" step="1" value="${bobbingSpeed}"
         oninput="this.previousElementSibling.querySelector('span').textContent = this.value; updateScene(${index}, 'bobbingSpeed', parseInt(this.value))" />
     `;
 
@@ -1197,7 +1197,7 @@ function loadScene(index) {
   state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
   state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
   state.bobbingDirection = scene.bobbingDirection !== undefined ? scene.bobbingDirection : 'vertical';
-  state.bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 3;
+  state.bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 2;
   state.bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
 
   if (scene.char1Index !== undefined && scene.char1Index !== null) {
