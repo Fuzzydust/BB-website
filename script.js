@@ -309,6 +309,7 @@ document.getElementById('bgImageInput').addEventListener('change', async (e) => 
     state.bgImage = img;
 
     updateBgSelect();
+    renderScenes();
     nameInput.value = '';
     e.target.value = '';
     drawScene();
@@ -366,6 +367,7 @@ document.getElementById('charImageInput').addEventListener('change', async (e) =
     state.charImage = img;
 
     updateChar1Select();
+    renderScenes();
     nameInput.value = '';
     e.target.value = '';
     startAnimation();
@@ -455,6 +457,7 @@ document.getElementById('char2ImageInput').addEventListener('change', async (e) 
     state.char2Image = img;
 
     updateChar2Select();
+    renderScenes();
     nameInput.value = '';
     e.target.value = '';
     if (!animationFrameId && (state.charImage || state.char2Image)) {
