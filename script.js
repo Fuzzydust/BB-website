@@ -379,10 +379,32 @@ document.getElementById('clearBgBtn').addEventListener('click', () => {
   drawScene();
 });
 
+document.getElementById('clearBgLibraryBtn').addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear all background images?')) {
+    state.bgLibrary = [];
+    state.bgImage = null;
+    state.selectedBg = null;
+    updateBgSelect();
+    drawScene();
+  }
+});
+
 document.getElementById('clearCharBtn').addEventListener('click', () => {
   state.charImage = null;
+  state.selectedChar1 = null;
+  document.getElementById('char1Select').value = '';
   stopAnimation();
   drawScene();
+});
+
+document.getElementById('clearChar1LibraryBtn').addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear all Character 1 images?')) {
+    state.char1Library = [];
+    state.charImage = null;
+    state.selectedChar1 = null;
+    updateChar1Select();
+    drawScene();
+  }
 });
 
 document.getElementById('flipCharBtn').addEventListener('click', () => {
@@ -453,6 +475,16 @@ document.getElementById('clearChar2Btn').addEventListener('click', () => {
     stopAnimation();
   }
   drawScene();
+});
+
+document.getElementById('clearChar2LibraryBtn').addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear all Character 2 images?')) {
+    state.char2Library = [];
+    state.char2Image = null;
+    state.selectedChar2 = null;
+    updateChar2Select();
+    drawScene();
+  }
 });
 
 document.getElementById('flipChar2Btn').addEventListener('click', () => {
