@@ -23,7 +23,17 @@
           <section class="control-section">
             <h2 class="collapsible-header">Background Image</h2>
             <div class="collapsible-content">
-            <input type="file" id="bgImageInput" accept="image/*" />
+            <div class="input-group">
+              <label>Add Image to Library:</label>
+              <input type="text" id="bgNameInput" placeholder="Image name (e.g., Forest, Castle)" />
+              <input type="file" id="bgImageInput" accept="image/*" />
+            </div>
+            <div class="input-group">
+              <label>Select Image:</label>
+              <select id="bgSelect">
+                <option value="">None</option>
+              </select>
+            </div>
             <div class="slider-control">
               <label>Position X: <span id="bgXValue">50</span>%</label>
               <input type="range" id="bgXPos" min="0" max="100" value="50" />

@@ -49,7 +49,9 @@ const state = {
   char1Library: [],
   char2Library: [],
   selectedChar1: null,
-  selectedChar2: null
+  selectedChar2: null,
+  bgLibrary: [],
+  selectedBg: null
 };
 
 function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null) {
@@ -268,11 +270,47 @@ function stopAnimation() {
   }
 }
 
+function updateBgSelect() {
+  const select = document.getElementById('bgSelect');
+  select.innerHTML = '<option value="">None</option>';
+  state.bgLibrary.forEach((item, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+  if (state.selectedBg !== null) {
+    select.value = state.selectedBg;
+  }
+}
+
 document.getElementById('bgImageInput').addEventListener('change', async (e) => {
   if (e.target.files[0]) {
-    state.bgImage = await loadImage(e.target.files[0]);
+    const nameInput = document.getElementById('bgNameInput');
+    const name = nameInput.value.trim() || `Background ${state.bgLibrary.length + 1}`;
+    const img = await loadImage(e.target.files[0]);
+
+    state.bgLibrary.push({ name, image: img });
+    state.selectedBg = state.bgLibrary.length - 1;
+    state.bgImage = img;
+
+    updateBgSelect();
+    nameInput.value = '';
+    e.target.value = '';
     drawScene();
   }
+});
+
+document.getElementById('bgSelect').addEventListener('change', (e) => {
+  const index = e.target.value;
+  if (index === '') {
+    state.selectedBg = null;
+    state.bgImage = null;
+  } else {
+    state.selectedBg = parseInt(index);
+    state.bgImage = state.bgLibrary[state.selectedBg].image;
+  }
+  drawScene();
 });
 
 function updateChar1Select() {
@@ -615,7 +653,8 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         dialogueText: state.dialogueText,
         activeSpeaker: state.activeSpeaker,
         charImage: state.charImage,
-        char2Image: state.char2Image
+        char2Image: state.char2Image,
+        bgImage: state.bgImage
       };
 
       state.charName = scene.charName;
@@ -632,6 +671,12 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         state.char2Image = state.char2Library[scene.char2Index]?.image || null;
       } else {
         state.char2Image = null;
+      }
+
+      if (scene.bgIndex !== undefined && scene.bgIndex !== null) {
+        state.bgImage = state.bgLibrary[scene.bgIndex]?.image || null;
+      } else {
+        state.bgImage = null;
       }
 
       for (let i = 0; i <= text.length; i++) {
@@ -746,7 +791,8 @@ function createScene() {
     boxColor: state.boxColor,
     textColor: state.textColor,
     char1Index: state.selectedChar1,
-    char2Index: state.selectedChar2
+    char2Index: state.selectedChar2,
+    bgIndex: state.selectedBg
   };
 }
 
@@ -838,6 +884,19 @@ function renderScenes() {
       </select>
     `;
 
+    const bgImageField = document.createElement('div');
+    bgImageField.className = 'scene-field';
+    const bgOptions = state.bgLibrary.map((item, idx) =>
+      `<option value="${idx}" ${scene.bgIndex === idx ? 'selected' : ''}>${item.name}</option>`
+    ).join('');
+    bgImageField.innerHTML = `
+      <label>Background Image:</label>
+      <select onchange="updateScene(${index}, 'bgIndex', this.value === '' ? null : parseInt(this.value))">
+        <option value="" ${scene.bgIndex === null || scene.bgIndex === undefined ? 'selected' : ''}>None</option>
+        ${bgOptions}
+      </select>
+    `;
+
     const speakerField = document.createElement('div');
     speakerField.className = 'scene-field';
     speakerField.innerHTML = `
@@ -884,6 +943,7 @@ function renderScenes() {
 
     sceneDetails.appendChild(nameField);
     sceneDetails.appendChild(textField);
+    sceneDetails.appendChild(bgImageField);
     sceneDetails.appendChild(char1ImageField);
     sceneDetails.appendChild(char2ImageField);
     sceneDetails.appendChild(speakerField);
@@ -923,6 +983,16 @@ function loadScene(index) {
     document.getElementById('char2Select').value = '';
   }
 
+  if (scene.bgIndex !== undefined && scene.bgIndex !== null) {
+    state.selectedBg = scene.bgIndex;
+    state.bgImage = state.bgLibrary[scene.bgIndex]?.image || null;
+    document.getElementById('bgSelect').value = scene.bgIndex;
+  } else {
+    state.selectedBg = null;
+    state.bgImage = null;
+    document.getElementById('bgSelect').value = '';
+  }
+
   document.getElementById('charName').value = scene.charName;
   document.getElementById('dialogueText').value = scene.dialogueText;
   document.getElementById('boxColor').value = state.boxColor;
@@ -945,6 +1015,10 @@ window.updateScene = function(index, field, value) {
       state.selectedChar2 = value;
       state.char2Image = value !== null ? state.char2Library[value]?.image || null : null;
       document.getElementById('char2Select').value = value !== null ? value : '';
+    } else if (field === 'bgIndex') {
+      state.selectedBg = value;
+      state.bgImage = value !== null ? state.bgLibrary[value]?.image || null : null;
+      document.getElementById('bgSelect').value = value !== null ? value : '';
     } else if (!['boxStyle', 'ornateBorderColor', 'ornateAccentColor', 'ornateCornerColor', 'customBoxImage'].includes(field)) {
       state[field] = value;
     }
@@ -1045,7 +1119,8 @@ async function exportAsMP4() {
         dialogueText: state.dialogueText,
         activeSpeaker: state.activeSpeaker,
         charImage: state.charImage,
-        char2Image: state.char2Image
+        char2Image: state.char2Image,
+        bgImage: state.bgImage
       };
 
       state.charName = scene.charName;
@@ -1062,6 +1137,12 @@ async function exportAsMP4() {
         state.char2Image = state.char2Library[scene.char2Index]?.image || null;
       } else {
         state.char2Image = null;
+      }
+
+      if (scene.bgIndex !== undefined && scene.bgIndex !== null) {
+        state.bgImage = state.bgLibrary[scene.bgIndex]?.image || null;
+      } else {
+        state.bgImage = null;
       }
 
       for (let i = 0; i <= text.length; i++) {
