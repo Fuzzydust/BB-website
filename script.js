@@ -759,6 +759,32 @@ document.getElementById('clearTextBoxLibraryBtn').addEventListener('click', () =
   }
 });
 
+async function loadDefaultTextBoxes() {
+  const defaultBoxes = [
+    { name: 'Simple Brown', path: 'images/textbox1-simple.svg' },
+    { name: 'Blue Modern', path: 'images/textbox2-blue.svg' },
+    { name: 'Dark Fantasy', path: 'images/textbox3-dark.svg' }
+  ];
+
+  for (const box of defaultBoxes) {
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = box.path;
+      });
+      state.textBoxLibrary.push({ name: box.name, image: img });
+    } catch (error) {
+      console.error(`Failed to load ${box.name}:`, error);
+    }
+  }
+
+  updateTextBoxSelect();
+}
+
+loadDefaultTextBoxes();
+
 document.getElementById('exportGifBtn').addEventListener('click', async () => {
   const statusDiv = document.getElementById('exportStatus');
 
