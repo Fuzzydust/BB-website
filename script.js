@@ -166,11 +166,13 @@ function drawDialogueBox(partialText = null, sceneBoxStyle = null) {
   const ornateBorderColor = sceneBoxStyle?.ornateBorderColor || state.ornateBorderColor;
   const ornateAccentColor = sceneBoxStyle?.ornateAccentColor || state.ornateAccentColor;
   const ornateCornerColor = sceneBoxStyle?.ornateCornerColor || state.ornateCornerColor;
+  const boxColor = sceneBoxStyle?.boxColor || state.boxColor;
+  const textColor = sceneBoxStyle?.textColor || state.textColor;
 
   if (boxStyle === 'custom' && customBoxImage) {
     ctx.drawImage(customBoxImage, boxX, boxY, boxWidth, boxHeight);
   } else {
-    ctx.fillStyle = state.boxColor;
+    ctx.fillStyle = boxColor;
     ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
     if (boxStyle === 'simple') {
@@ -198,7 +200,7 @@ function drawDialogueBox(partialText = null, sceneBoxStyle = null) {
     }
   }
 
-  ctx.fillStyle = state.textColor;
+  ctx.fillStyle = textColor;
   ctx.font = `bold 24px ${state.fontFamily}`;
   ctx.fillText(state.charName, boxX + 60, boxY + 45);
 
