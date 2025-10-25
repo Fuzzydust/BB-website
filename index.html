@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>RPG Dialogue Maker</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module">
+      import { GIFEncoder, quantize, applyPalette } from 'https://unpkg.com/gifenc';
+      window.gifenc = { GIFEncoder, quantize, applyPalette };
+    </script>
+    <script type="module" src="script.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>RPG Dialogue Maker</h1>
+        <p>Create custom RPG dialogue scenes and export them as GIFs</p>
+      </header>
+
+      <div class="workspace">
+        <aside class="controls-panel">
+          <section class="control-section">
+            <h2 class="collapsible-header">Background Image</h2>
+            <div class="collapsible-content">
+            <input type="file" id="bgImageInput" accept="image/*" />
+            <div class="slider-control">
+              <label>Position X: <span id="bgXValue">50</span>%</label>
+              <input type="range" id="bgXPos" min="0" max="100" value="50" />
+            </div>
+            <div class="slider-control">
+              <label>Position Y: <span id="bgYValue">50</span>%</label>
+              <input type="range" id="bgYPos" min="0" max="100" value="50" />
+            </div>
+            <div class="slider-control">
+              <label>Scale: <span id="bgScaleValue">100</span>%</label>
+              <input type="range" id="bgScale" min="20" max="300" value="100" />
+            </div>
+            <button id="clearBgBtn" class="secondary-btn">Clear Background</button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <h2 class="collapsible-header">Character 1</h2>
+            <div class="collapsible-content">
+            <input type="file" id="charImageInput" accept="image/*" />
+            <div class="slider-control">
+              <label>Position X: <span id="charXValue">50</span>%</label>
+              <input type="range" id="charXPos" min="0" max="100" value="50" />
+            </div>
+            <div class="slider-control">
+              <label>Position Y: <span id="charYValue">50</span>%</label>
+              <input type="range" id="charYPos" min="0" max="100" value="50" />
+            </div>
+            <div class="slider-control">
+              <label>Scale: <span id="charScaleValue">100</span>%</label>
+              <input type="range" id="charScale" min="20" max="200" value="100" />
+            </div>
+            <button id="flipCharBtn" class="secondary-btn">Flip Horizontal</button>
+            <button id="clearCharBtn" class="secondary-btn">Clear Character</button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <h2 class="collapsible-header">Character 2</h2>
+            <div class="collapsible-content">
+            <input type="file" id="char2ImageInput" accept="image/*" />
+            <div class="slider-control">
+              <label>Position X: <span id="char2XValue">50</span>%</label>
+              <input type="range" id="char2XPos" min="0" max="100" value="50" />
+            </div>
+            <div class="slider-control">
+              <label>Position Y: <span id="char2YValue">50</span>%</label>
+              <input type="range" id="char2YPos" min="0" max="100" value="50" />
+            </div>
+            <div class="slider-control">
+              <label>Scale: <span id="char2ScaleValue">100</span>%</label>
+              <input type="range" id="char2Scale" min="20" max="200" value="100" />
+            </div>
+            <button id="flipChar2Btn" class="secondary-btn">Flip Horizontal</button>
+            <button id="clearChar2Btn" class="secondary-btn">Clear Character</button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <h2 class="collapsible-header">Dialogue Box</h2>
+            <div class="collapsible-content">
+            <div class="checkbox-control">
+              <input type="checkbox" id="showDialogue" checked />
+              <label for="showDialogue">Show Dialogue Box</label>
+            </div>
+            <div class="input-group">
+              <label>Character Name:</label>
+              <input type="text" id="charName" placeholder="Character Name" value="Hero" />
+            </div>
+            <div class="input-group">
+              <label>Dialogue Text:</label>
+              <textarea id="dialogueText" rows="3" placeholder="Enter dialogue text...">Welcome to the adventure!</textarea>
+            </div>
+            <div class="color-control">
+              <label>Box Color:</label>
+              <input type="color" id="boxColor" value="#7c5941" />
+            </div>
+            <div class="color-control">
+              <label>Text Color:</label>
+              <input type="color" id="textColor" value="#2d1f1f" />
+            </div>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <h2 class="collapsible-header">Scenes</h2>
+            <div class="collapsible-content">
+            <div class="scenes-list" id="scenesList"></div>
+            <button id="addSceneBtn" class="primary-btn">Add Scene</button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <h2 class="collapsible-header">Custom Font</h2>
+            <div class="collapsible-content">
+            <input type="file" id="fontInput" accept=".ttf,.otf,.woff,.woff2" />
+            <div class="font-info">
+              <small>Upload .ttf, .otf, .woff, or .woff2 font files</small>
+            </div>
+            <button id="clearFontBtn" class="secondary-btn">Use Default Font</button>
+            </div>
+          </section>
+
+          <section class="control-section">
+            <h2 class="collapsible-header">Export Settings</h2>
+            <div class="collapsible-content">
+            <div class="slider-control">
+              <label>Typing Speed: <span id="typingSpeedValue">50</span>ms per character</label>
+              <input type="range" id="typingSpeed" min="1" max="100" value="50" step="1" />
+            </div>
+            <button id="exportGifBtn" class="primary-btn">Export as GIF</button>
+            <button id="exportMp4Btn" class="primary-btn">Export as MP4</button>
+            <div id="exportStatus" class="export-status"></div>
+            <div id="exportPreview" style="display: none; margin-top: 15px;">
+              <h3 style="font-size: 14px; margin-bottom: 8px; color: #2d3748;">Preview:</h3>
+              <img id="exportPreviewImage" style="max-width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; display: none;" />
+              <video id="exportPreviewVideo" controls style="max-width: 100%; border: 2px solid #e2e8f0; border-radius: 8px; display: none;"></video>
+            </div>
+            </div>
+          </section>
+        </aside>
+
+        <main class="canvas-area">
+          <div class="canvas-wrapper">
+            <canvas id="previewCanvas" width="800" height="600"></canvas>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
