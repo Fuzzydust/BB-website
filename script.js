@@ -374,6 +374,8 @@ document.getElementById('char1Select').addEventListener('change', (e) => {
 
 document.getElementById('clearBgBtn').addEventListener('click', () => {
   state.bgImage = null;
+  state.selectedBg = null;
+  document.getElementById('bgSelect').value = '';
   drawScene();
 });
 
