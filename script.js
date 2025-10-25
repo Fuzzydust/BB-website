@@ -616,7 +616,9 @@ function createScene() {
     customBoxImage: state.customBoxImage,
     ornateBorderColor: state.ornateBorderColor,
     ornateAccentColor: state.ornateAccentColor,
-    ornateCornerColor: state.ornateCornerColor
+    ornateCornerColor: state.ornateCornerColor,
+    boxColor: state.boxColor,
+    textColor: state.textColor
   };
 }
 
