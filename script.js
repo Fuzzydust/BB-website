@@ -962,9 +962,10 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
     exportPreviewVideo.style.display = 'none';
     exportPreview.style.display = 'block';
 
+    const fileName = document.getElementById('exportFileName').value.trim() || 'dialogue_animation';
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'rpg-dialogue.gif';
+    a.download = `${fileName}.gif`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1461,9 +1462,10 @@ async function exportAsMP4() {
       exportPreviewImage.style.display = 'none';
       exportPreview.style.display = 'block';
 
+      const fileName = document.getElementById('exportFileName').value.trim() || 'dialogue_animation';
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'rpg-dialogue.webm';
+      a.download = `${fileName}.webm`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
