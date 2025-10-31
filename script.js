@@ -836,12 +836,22 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         activeSpeaker: state.activeSpeaker,
         charImage: state.charImage,
         char2Image: state.char2Image,
-        bgImage: state.bgImage
+        bgImage: state.bgImage,
+        bobbingEnabled: state.bobbingEnabled,
+        bobbingTarget: state.bobbingTarget,
+        bobbingDirection: state.bobbingDirection,
+        bobbingSpeed: state.bobbingSpeed,
+        bobbingAmplitude: state.bobbingAmplitude
       };
 
       state.charName = scene.charName;
       state.dialogueText = scene.dialogueText;
       state.activeSpeaker = scene.speaker;
+      state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
+      state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
+      state.bobbingDirection = scene.bobbingDirection !== undefined ? scene.bobbingDirection : 'vertical';
+      state.bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 2;
+      state.bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
 
       if (scene.char1Index !== undefined && scene.char1Index !== null) {
         state.charImage = state.char1Library[scene.char1Index]?.image || null;
@@ -1492,12 +1502,22 @@ async function exportAsMP4() {
         activeSpeaker: state.activeSpeaker,
         charImage: state.charImage,
         char2Image: state.char2Image,
-        bgImage: state.bgImage
+        bgImage: state.bgImage,
+        bobbingEnabled: state.bobbingEnabled,
+        bobbingTarget: state.bobbingTarget,
+        bobbingDirection: state.bobbingDirection,
+        bobbingSpeed: state.bobbingSpeed,
+        bobbingAmplitude: state.bobbingAmplitude
       };
 
       state.charName = scene.charName;
       state.dialogueText = scene.dialogueText;
       state.activeSpeaker = scene.speaker;
+      state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
+      state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
+      state.bobbingDirection = scene.bobbingDirection !== undefined ? scene.bobbingDirection : 'vertical';
+      state.bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 2;
+      state.bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
 
       if (scene.char1Index !== undefined && scene.char1Index !== null) {
         state.charImage = state.char1Library[scene.char1Index]?.image || null;
