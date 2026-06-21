@@ -62,7 +62,8 @@ const state = {
   bgLibrary: [],
   selectedBg: null,
   textBoxLibrary: [],
-  selectedTextBox: null
+  selectedTextBox: null,
+  editingMovementSceneIndex: -1
 };
 
 function drawScene(partialText = null, speakerOverride = null, sceneBoxStyle = null, fadeOpacity = 1, fadeType = null) {
@@ -828,7 +829,6 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
 
     for (let sceneIndex = 0; sceneIndex < state.scenes.length; sceneIndex++) {
       const scene = state.scenes[sceneIndex];
-      const text = scene.dialogueText;
 
       const savedState = {
         charName: state.charName,
@@ -837,6 +837,11 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         charImage: state.charImage,
         char2Image: state.char2Image,
         bgImage: state.bgImage,
+        charX: state.charX,
+        charY: state.charY,
+        char2X: state.char2X,
+        char2Y: state.char2Y,
+        showDialogue: state.showDialogue,
         bobbingEnabled: state.bobbingEnabled,
         bobbingTarget: state.bobbingTarget,
         bobbingDirection: state.bobbingDirection,
@@ -844,9 +849,9 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         bobbingAmplitude: state.bobbingAmplitude
       };
 
-      state.charName = scene.charName;
-      state.dialogueText = scene.dialogueText;
-      state.activeSpeaker = scene.speaker;
+      state.charName = scene.charName || '';
+      state.dialogueText = scene.dialogueText || '';
+      state.activeSpeaker = scene.speaker || 'none';
       state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
       state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
       state.bobbingDirection = scene.bobbingDirection !== undefined ? scene.bobbingDirection : 'vertical';
@@ -871,59 +876,101 @@ document.getElementById('exportGifBtn').addEventListener('click', async () => {
         state.bgImage = null;
       }
 
-      if (scene.transitionType === 'fadeIn' && scene.transitionDuration > 0) {
-        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
-        for (let i = 0; i < transitionFrames; i++) {
-          const fadeOpacity = i / transitionFrames;
-          animationTime = frameTime;
-          drawScene('', scene.speaker, scene, fadeOpacity, 'fadeIn');
-          await new Promise(resolve => requestAnimationFrame(resolve));
+      if (scene.type === 'movement') {
+        const nodes = scene.nodes || [];
+        state.showDialogue = false;
 
+        if (nodes.length >= 2) {
+          const frameDelay = 33;
+          const speed = scene.movementSpeed || 200;
+
+          for (let seg = 0; seg < nodes.length - 1; seg++) {
+            const fromNode = nodes[seg];
+            const toNode = nodes[seg + 1];
+            const dx = (toNode.x - fromNode.x) / 100 * canvas.width;
+            const dy = (toNode.y - fromNode.y) / 100 * canvas.height;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const segDuration = (dist / speed) * 1000;
+            const segFrames = Math.max(1, Math.ceil(segDuration / frameDelay));
+
+            for (let f = 0; f <= segFrames; f++) {
+              const t = f / segFrames;
+              const x = fromNode.x + (toNode.x - fromNode.x) * t;
+              const y = fromNode.y + (toNode.y - fromNode.y) * t;
+              if (scene.movingCharacter === 'char2') {
+                state.char2X = x; state.char2Y = y;
+              } else {
+                state.charX = x; state.charY = y;
+              }
+              animationTime = frameTime;
+              drawScene(null, 'none', scene);
+              await new Promise(resolve => requestAnimationFrame(resolve));
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              frames.push({ data: imageData.data, delay: frameDelay });
+              frameTime += frameDelay;
+            }
+          }
+        } else if (nodes.length === 1) {
+          if (scene.movingCharacter === 'char2') {
+            state.char2X = nodes[0].x; state.char2Y = nodes[0].y;
+          } else {
+            state.charX = nodes[0].x; state.charY = nodes[0].y;
+          }
+          animationTime = frameTime;
+          drawScene(null, 'none', scene);
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          frames.push({ data: imageData.data, delay: 1000 });
+          frameTime += 1000;
+        }
+      } else {
+        const text = scene.dialogueText;
+
+        if (scene.transitionType === 'fadeIn' && scene.transitionDuration > 0) {
+          const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+          for (let i = 0; i < transitionFrames; i++) {
+            const fadeOpacity = i / transitionFrames;
+            animationTime = frameTime;
+            drawScene('', scene.speaker, scene, fadeOpacity, 'fadeIn');
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            frames.push({ data: imageData.data, delay: state.typingSpeed });
+            frameTime += state.typingSpeed;
+          }
+        }
+
+        for (let i = 0; i <= text.length; i++) {
+          const partialText = text.substring(0, i);
+          animationTime = frameTime;
+          drawScene(partialText, scene.speaker, scene);
+          await new Promise(resolve => requestAnimationFrame(resolve));
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           frames.push({ data: imageData.data, delay: state.typingSpeed });
-
           frameTime += state.typingSpeed;
         }
-      }
 
-      for (let i = 0; i <= text.length; i++) {
-        const partialText = text.substring(0, i);
-        animationTime = frameTime;
-        drawScene(partialText, scene.speaker, scene);
-        await new Promise(resolve => requestAnimationFrame(resolve));
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        frames.push({ data: imageData.data, delay: state.typingSpeed });
-
-        frameTime += state.typingSpeed;
-      }
-
-      const holdDuration = scene.duration || 2000;
-      const holdFrames = Math.ceil(holdDuration / state.typingSpeed);
-
-      for (let i = 0; i < holdFrames; i++) {
-        animationTime = frameTime;
-        drawScene(text, scene.speaker, scene);
-        await new Promise(resolve => requestAnimationFrame(resolve));
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        frames.push({ data: imageData.data, delay: state.typingSpeed });
-
-        frameTime += state.typingSpeed;
-      }
-
-      if (scene.transitionType === 'fadeOut' && scene.transitionDuration > 0) {
-        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
-        for (let i = 0; i < transitionFrames; i++) {
-          const fadeOpacity = i / transitionFrames;
+        const holdDuration = scene.duration || 2000;
+        const holdFrames = Math.ceil(holdDuration / state.typingSpeed);
+        for (let i = 0; i < holdFrames; i++) {
           animationTime = frameTime;
-          drawScene(text, scene.speaker, scene, fadeOpacity, 'fadeOut');
+          drawScene(text, scene.speaker, scene);
           await new Promise(resolve => requestAnimationFrame(resolve));
-
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           frames.push({ data: imageData.data, delay: state.typingSpeed });
-
           frameTime += state.typingSpeed;
+        }
+
+        if (scene.transitionType === 'fadeOut' && scene.transitionDuration > 0) {
+          const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+          for (let i = 0; i < transitionFrames; i++) {
+            const fadeOpacity = i / transitionFrames;
+            animationTime = frameTime;
+            drawScene(text, scene.speaker, scene, fadeOpacity, 'fadeOut');
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            frames.push({ data: imageData.data, delay: state.typingSpeed });
+            frameTime += state.typingSpeed;
+          }
         }
       }
 
@@ -1031,7 +1078,55 @@ function createScene() {
   };
 }
 
+function createMovementScene() {
+  return {
+    id: sceneIdCounter++,
+    type: 'movement',
+    movingCharacter: 'char1',
+    nodes: [],
+    movementSpeed: 200,
+    char1Index: state.selectedChar1,
+    char2Index: state.selectedChar2,
+    bgIndex: state.selectedBg,
+    textBoxIndex: state.selectedTextBox,
+    transitionType: 'none',
+    transitionDuration: 500,
+    bobbingEnabled: false,
+    bobbingTarget: 'none',
+    bobbingDirection: 'vertical',
+    bobbingSpeed: 2,
+    bobbingAmplitude: 6,
+    showDialogue: false,
+    charName: state.charName,
+    dialogueText: '',
+    speaker: 'none',
+    boxStyle: state.boxStyle,
+    customBoxImage: state.customBoxImage,
+    ornateBorderColor: state.ornateBorderColor,
+    ornateAccentColor: state.ornateAccentColor,
+    ornateCornerColor: state.ornateCornerColor,
+    boxColor: state.boxColor,
+    textColor: state.textColor,
+    nameX: state.nameX,
+    nameY: state.nameY,
+    dialogueX: state.dialogueX,
+    dialogueY: state.dialogueY
+  };
+}
+
+function calculateMovementDuration(scene) {
+  if (!scene.nodes || scene.nodes.length < 2) return 1000;
+  let totalPixels = 0;
+  for (let i = 1; i < scene.nodes.length; i++) {
+    const dx = (scene.nodes[i].x - scene.nodes[i - 1].x) / 100 * canvas.width;
+    const dy = (scene.nodes[i].y - scene.nodes[i - 1].y) / 100 * canvas.height;
+    totalPixels += Math.sqrt(dx * dx + dy * dy);
+  }
+  return Math.round((totalPixels / (scene.movementSpeed || 200)) * 1000);
+}
+
 function calculateSceneDuration(scene) {
+  if (scene.type === 'movement') return calculateMovementDuration(scene);
   const textLength = scene.dialogueText.length;
   const typingTime = textLength * state.typingSpeed;
   const holdTime = scene.duration;
@@ -1041,6 +1136,273 @@ function calculateSceneDuration(scene) {
 function formatDuration(ms) {
   const seconds = (ms / 1000).toFixed(1);
   return `${seconds}s`;
+}
+
+function buildSharedImageFields(container, scene, index) {
+  const char1Options = state.char1Library.map((item, idx) =>
+    `<option value="${idx}" ${scene.char1Index === idx ? 'selected' : ''}>${item.name}</option>`
+  ).join('');
+  const char1ImageField = document.createElement('div');
+  char1ImageField.className = 'scene-field';
+  char1ImageField.innerHTML = `
+    <label>Character 1 Image:</label>
+    <select onchange="updateScene(${index}, 'char1Index', this.value === '' ? null : parseInt(this.value))">
+      <option value="" ${scene.char1Index === null || scene.char1Index === undefined ? 'selected' : ''}>None</option>
+      ${char1Options}
+    </select>
+  `;
+
+  const char2Options = state.char2Library.map((item, idx) =>
+    `<option value="${idx}" ${scene.char2Index === idx ? 'selected' : ''}>${item.name}</option>`
+  ).join('');
+  const char2ImageField = document.createElement('div');
+  char2ImageField.className = 'scene-field';
+  char2ImageField.innerHTML = `
+    <label>Character 2 Image:</label>
+    <select onchange="updateScene(${index}, 'char2Index', this.value === '' ? null : parseInt(this.value))">
+      <option value="" ${scene.char2Index === null || scene.char2Index === undefined ? 'selected' : ''}>None</option>
+      ${char2Options}
+    </select>
+  `;
+
+  const bgOptions = state.bgLibrary.map((item, idx) =>
+    `<option value="${idx}" ${scene.bgIndex === idx ? 'selected' : ''}>${item.name}</option>`
+  ).join('');
+  const bgImageField = document.createElement('div');
+  bgImageField.className = 'scene-field';
+  bgImageField.innerHTML = `
+    <label>Background Image:</label>
+    <select onchange="updateScene(${index}, 'bgIndex', this.value === '' ? null : parseInt(this.value))">
+      <option value="" ${scene.bgIndex === null || scene.bgIndex === undefined ? 'selected' : ''}>None</option>
+      ${bgOptions}
+    </select>
+  `;
+
+  const transitionField = document.createElement('div');
+  transitionField.className = 'scene-field';
+  const currentTransition = scene.transitionType || 'none';
+  transitionField.innerHTML = `
+    <label>Transition Type:</label>
+    <select onchange="updateScene(${index}, 'transitionType', this.value)">
+      <option value="none" ${currentTransition === 'none' ? 'selected' : ''}>None</option>
+      <option value="fadeIn" ${currentTransition === 'fadeIn' ? 'selected' : ''}>Fade In from Black</option>
+      <option value="fadeOut" ${currentTransition === 'fadeOut' ? 'selected' : ''}>Fade Out to Black</option>
+    </select>
+  `;
+
+  const transitionDurationValue = scene.transitionDuration || 500;
+  const transitionDurationField = document.createElement('div');
+  transitionDurationField.className = 'scene-field';
+  transitionDurationField.innerHTML = `
+    <label>Transition Duration: <span>${formatDuration(transitionDurationValue)}</span></label>
+    <input type="range" min="100" max="2000" step="100" value="${transitionDurationValue}"
+      oninput="this.previousElementSibling.querySelector('span').textContent = formatDuration(this.value); updateScene(${index}, 'transitionDuration', parseInt(this.value))" />
+  `;
+
+  container.appendChild(bgImageField);
+  container.appendChild(char1ImageField);
+  container.appendChild(char2ImageField);
+  container.appendChild(transitionField);
+  container.appendChild(transitionDurationField);
+}
+
+function buildMovementSceneDetails(container, scene, index) {
+  const movingCharField = document.createElement('div');
+  movingCharField.className = 'scene-field';
+  const movingChar = scene.movingCharacter || 'char1';
+  movingCharField.innerHTML = `
+    <label>Moving Character:</label>
+    <select onchange="updateScene(${index}, 'movingCharacter', this.value)">
+      <option value="char1" ${movingChar === 'char1' ? 'selected' : ''}>Character 1</option>
+      <option value="char2" ${movingChar === 'char2' ? 'selected' : ''}>Character 2</option>
+    </select>
+  `;
+
+  const speedValue = scene.movementSpeed || 200;
+  const speedField = document.createElement('div');
+  speedField.className = 'scene-field';
+  speedField.innerHTML = `
+    <label>Movement Speed: <span>${speedValue}px/s</span></label>
+    <input type="range" min="50" max="800" step="10" value="${speedValue}"
+      oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 'px/s'; updateScene(${index}, 'movementSpeed', parseInt(this.value))" />
+  `;
+
+  const nodesField = document.createElement('div');
+  nodesField.className = 'scene-field';
+  const nodes = scene.nodes || [];
+  const nodeRows = nodes.map((n, ni) => `
+    <div class="movement-node" data-scene="${index}" data-node="${ni}">
+      <span class="node-number">${ni + 1}</span>
+      <span class="node-coords">X: ${n.x}% Y: ${n.y}%</span>
+      <button class="scene-btn delete" onclick="removeMovementNode(${index}, ${ni})">x</button>
+    </div>
+  `).join('');
+  const isEditing = state.currentSceneIndex === index && state.editingMovementSceneIndex === index;
+  nodesField.innerHTML = `
+    <label>Movement Nodes (${nodes.length}):</label>
+    <div class="nodes-list">${nodeRows || '<small style="color:#999">No nodes yet</small>'}</div>
+    <button class="scene-btn ${isEditing ? 'active-node-btn' : ''}" style="margin-top:6px;width:100%"
+      onclick="toggleMovementNodeEdit(${index})">
+      ${isEditing ? 'Done Adding Nodes' : 'Click Canvas to Add Nodes'}
+    </button>
+    <button class="scene-btn" style="margin-top:4px;width:100%;color:#e53e3e;border-color:#e53e3e"
+      onclick="clearMovementNodes(${index})">Clear All Nodes</button>
+  `;
+
+  container.appendChild(movingCharField);
+  container.appendChild(speedField);
+  buildSharedImageFields(container, scene, index);
+  container.appendChild(nodesField);
+}
+
+function buildDialogueSceneDetails(container, scene, index) {
+  const nameField = document.createElement('div');
+  nameField.className = 'scene-field';
+  nameField.innerHTML = `
+    <label>Character Name:</label>
+    <input type="text" value="${scene.charName}" onchange="updateScene(${index}, 'charName', this.value)" />
+  `;
+
+  const textField = document.createElement('div');
+  textField.className = 'scene-field';
+  textField.innerHTML = `
+    <label>Dialogue:</label>
+    <textarea onchange="updateScene(${index}, 'dialogueText', this.value)">${scene.dialogueText}</textarea>
+  `;
+
+  const textBoxOptions = state.textBoxLibrary.map((item, idx) =>
+    `<option value="${idx}" ${scene.textBoxIndex === idx ? 'selected' : ''}>${item.name}</option>`
+  ).join('');
+  const textBoxField = document.createElement('div');
+  textBoxField.className = 'scene-field';
+  textBoxField.innerHTML = `
+    <label>Text Box:</label>
+    <select onchange="updateScene(${index}, 'textBoxIndex', this.value === '' ? null : parseInt(this.value))">
+      <option value="" ${scene.textBoxIndex === null || scene.textBoxIndex === undefined ? 'selected' : ''}>Simple (Generated)</option>
+      ${textBoxOptions}
+    </select>
+  `;
+
+  const speakerField = document.createElement('div');
+  speakerField.className = 'scene-field';
+  speakerField.innerHTML = `
+    <label>Who's Talking:</label>
+    <select onchange="updateScene(${index}, 'speaker', this.value)">
+      <option value="none" ${scene.speaker === 'none' ? 'selected' : ''}>None</option>
+      <option value="char1" ${scene.speaker === 'char1' ? 'selected' : ''}>Character 1</option>
+      <option value="char2" ${scene.speaker === 'char2' ? 'selected' : ''}>Character 2</option>
+    </select>
+  `;
+
+  const bobbingChecked = scene.bobbingEnabled !== false;
+  const bobbingEnabledField = document.createElement('div');
+  bobbingEnabledField.className = 'scene-field';
+  bobbingEnabledField.innerHTML = `
+    <label style="display: flex; align-items: center; gap: 8px;">
+      <input type="checkbox" ${bobbingChecked ? 'checked' : ''}
+        onchange="updateScene(${index}, 'bobbingEnabled', this.checked)" />
+      Enable Bobbing Animation
+    </label>
+  `;
+
+  const bobbingTarget = scene.bobbingTarget || 'none';
+  const bobbingTargetField = document.createElement('div');
+  bobbingTargetField.className = 'scene-field';
+  bobbingTargetField.innerHTML = `
+    <label>Bobbing Target:</label>
+    <select onchange="updateScene(${index}, 'bobbingTarget', this.value)">
+      <option value="none" ${bobbingTarget === 'none' ? 'selected' : ''}>None</option>
+      <option value="char1" ${bobbingTarget === 'char1' ? 'selected' : ''}>Character 1</option>
+      <option value="char2" ${bobbingTarget === 'char2' ? 'selected' : ''}>Character 2</option>
+      <option value="both" ${bobbingTarget === 'both' ? 'selected' : ''}>Both Characters</option>
+    </select>
+  `;
+
+  const bobbingDirection = scene.bobbingDirection || 'vertical';
+  const bobbingDirectionField = document.createElement('div');
+  bobbingDirectionField.className = 'scene-field';
+  bobbingDirectionField.innerHTML = `
+    <label>Bobbing Direction:</label>
+    <select onchange="updateScene(${index}, 'bobbingDirection', this.value)">
+      <option value="vertical" ${bobbingDirection === 'vertical' ? 'selected' : ''}>Vertical</option>
+      <option value="horizontal" ${bobbingDirection === 'horizontal' ? 'selected' : ''}>Horizontal</option>
+    </select>
+  `;
+
+  const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 2;
+  const bobbingSpeedField = document.createElement('div');
+  bobbingSpeedField.className = 'scene-field';
+  bobbingSpeedField.innerHTML = `
+    <label>Bobbing Speed: <span>${bobbingSpeed}</span></label>
+    <input type="range" min="1" max="5" step="1" value="${bobbingSpeed}"
+      oninput="this.previousElementSibling.querySelector('span').textContent = this.value; updateScene(${index}, 'bobbingSpeed', parseInt(this.value))" />
+  `;
+
+  const bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
+  const bobbingAmplitudeField = document.createElement('div');
+  bobbingAmplitudeField.className = 'scene-field';
+  bobbingAmplitudeField.innerHTML = `
+    <label>Bobbing Amplitude: <span>${bobbingAmplitude}px</span></label>
+    <input type="range" min="1" max="20" step="1" value="${bobbingAmplitude}"
+      oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 'px'; updateScene(${index}, 'bobbingAmplitude', parseInt(this.value))" />
+  `;
+
+  const durationValue = scene.duration || 2000;
+  const durationField = document.createElement('div');
+  durationField.className = 'scene-field';
+  durationField.innerHTML = `
+    <label>Hold Duration: <span>${formatDuration(durationValue)}</span></label>
+    <input type="range" min="500" max="5000" step="100" value="${durationValue}"
+      oninput="this.previousElementSibling.querySelector('span').textContent = formatDuration(this.value); updateScene(${index}, 'duration', parseInt(this.value))" />
+  `;
+
+  const currentBoxStyle = scene.boxStyle || 'simple';
+  const boxStyleField = document.createElement('div');
+  boxStyleField.className = 'scene-field';
+  boxStyleField.innerHTML = `
+    <label>Dialogue Box Style:</label>
+    <select onchange="updateSceneBoxStyle(${index}, this.value)">
+      <option value="simple" ${currentBoxStyle === 'simple' ? 'selected' : ''}>Simple</option>
+      <option value="ornate" ${currentBoxStyle === 'ornate' ? 'selected' : ''}>Ornate</option>
+      <option value="custom" ${currentBoxStyle === 'custom' ? 'selected' : ''}>Custom Image</option>
+    </select>
+  `;
+
+  const ornateColorsField = document.createElement('div');
+  ornateColorsField.className = 'scene-field';
+  ornateColorsField.style.display = currentBoxStyle === 'ornate' ? 'block' : 'none';
+  ornateColorsField.innerHTML = `
+    <label>Border Color:</label>
+    <input type="color" value="${scene.ornateBorderColor || '#5a2f2f'}" onchange="updateScene(${index}, 'ornateBorderColor', this.value)" />
+    <label>Accent Color:</label>
+    <input type="color" value="${scene.ornateAccentColor || '#c97676'}" onchange="updateScene(${index}, 'ornateAccentColor', this.value)" />
+    <label>Corner Color:</label>
+    <input type="color" value="${scene.ornateCornerColor || '#8b4545'}" onchange="updateScene(${index}, 'ornateCornerColor', this.value)" />
+  `;
+
+  const customBoxImageField = document.createElement('div');
+  customBoxImageField.className = 'scene-field';
+  customBoxImageField.style.display = currentBoxStyle === 'custom' ? 'block' : 'none';
+  customBoxImageField.innerHTML = `
+    <label>Custom Box Image:</label>
+    <input type="file" accept="image/*" onchange="handleSceneBoxImageUpload(${index}, this.files[0])" />
+    ${scene.customBoxImage ? '<small style="color: #667eea;">Image uploaded</small>' : '<small>No image uploaded</small>'}
+  `;
+
+  container.appendChild(nameField);
+  container.appendChild(textField);
+  buildSharedImageFields(container, scene, index);
+  container.appendChild(textBoxField);
+  container.appendChild(speakerField);
+  container.appendChild(bobbingEnabledField);
+  container.appendChild(bobbingTargetField);
+  container.appendChild(bobbingDirectionField);
+  container.appendChild(bobbingSpeedField);
+  container.appendChild(bobbingAmplitudeField);
+  container.appendChild(durationField);
+  container.appendChild(boxStyleField);
+  container.appendChild(ornateColorsField);
+  container.appendChild(customBoxImageField);
 }
 
 function renderScenes() {
@@ -1057,7 +1419,8 @@ function renderScenes() {
     const sceneTitle = document.createElement('div');
     sceneTitle.className = 'scene-title';
     const duration = calculateSceneDuration(scene);
-    sceneTitle.textContent = `Scene ${index + 1} (${formatDuration(duration)})`;
+    const sceneTypeLabel = scene.type === 'movement' ? ' [Movement]' : '';
+    sceneTitle.textContent = `Scene ${index + 1}${sceneTypeLabel} (${formatDuration(duration)})`;
     sceneTitle.onclick = () => loadScene(index);
 
     const sceneActions = document.createElement('div');
@@ -1079,217 +1442,12 @@ function renderScenes() {
     const sceneDetails = document.createElement('div');
     sceneDetails.className = 'scene-details';
 
-    const nameField = document.createElement('div');
-    nameField.className = 'scene-field';
-    nameField.innerHTML = `
-      <label>Character Name:</label>
-      <input type="text" value="${scene.charName}" onchange="updateScene(${index}, 'charName', this.value)" />
-    `;
+    if (scene.type === 'movement') {
+      buildMovementSceneDetails(sceneDetails, scene, index);
+    } else {
+      buildDialogueSceneDetails(sceneDetails, scene, index);
+    }
 
-    const textField = document.createElement('div');
-    textField.className = 'scene-field';
-    textField.innerHTML = `
-      <label>Dialogue:</label>
-      <textarea onchange="updateScene(${index}, 'dialogueText', this.value)">${scene.dialogueText}</textarea>
-    `;
-
-    const char1ImageField = document.createElement('div');
-    char1ImageField.className = 'scene-field';
-    const char1Options = state.char1Library.map((item, idx) =>
-      `<option value="${idx}" ${scene.char1Index === idx ? 'selected' : ''}>${item.name}</option>`
-    ).join('');
-    char1ImageField.innerHTML = `
-      <label>Character 1 Image:</label>
-      <select onchange="updateScene(${index}, 'char1Index', this.value === '' ? null : parseInt(this.value))">
-        <option value="" ${scene.char1Index === null || scene.char1Index === undefined ? 'selected' : ''}>None</option>
-        ${char1Options}
-      </select>
-    `;
-
-    const char2ImageField = document.createElement('div');
-    char2ImageField.className = 'scene-field';
-    const char2Options = state.char2Library.map((item, idx) =>
-      `<option value="${idx}" ${scene.char2Index === idx ? 'selected' : ''}>${item.name}</option>`
-    ).join('');
-    char2ImageField.innerHTML = `
-      <label>Character 2 Image:</label>
-      <select onchange="updateScene(${index}, 'char2Index', this.value === '' ? null : parseInt(this.value))">
-        <option value="" ${scene.char2Index === null || scene.char2Index === undefined ? 'selected' : ''}>None</option>
-        ${char2Options}
-      </select>
-    `;
-
-    const bgImageField = document.createElement('div');
-    bgImageField.className = 'scene-field';
-    const bgOptions = state.bgLibrary.map((item, idx) =>
-      `<option value="${idx}" ${scene.bgIndex === idx ? 'selected' : ''}>${item.name}</option>`
-    ).join('');
-    bgImageField.innerHTML = `
-      <label>Background Image:</label>
-      <select onchange="updateScene(${index}, 'bgIndex', this.value === '' ? null : parseInt(this.value))">
-        <option value="" ${scene.bgIndex === null || scene.bgIndex === undefined ? 'selected' : ''}>None</option>
-        ${bgOptions}
-      </select>
-    `;
-
-    const textBoxField = document.createElement('div');
-    textBoxField.className = 'scene-field';
-    const textBoxOptions = state.textBoxLibrary.map((item, idx) =>
-      `<option value="${idx}" ${scene.textBoxIndex === idx ? 'selected' : ''}>${item.name}</option>`
-    ).join('');
-    textBoxField.innerHTML = `
-      <label>Text Box:</label>
-      <select onchange="updateScene(${index}, 'textBoxIndex', this.value === '' ? null : parseInt(this.value))">
-        <option value="" ${scene.textBoxIndex === null || scene.textBoxIndex === undefined ? 'selected' : ''}>Simple (Generated)</option>
-        ${textBoxOptions}
-      </select>
-    `;
-
-    const speakerField = document.createElement('div');
-    speakerField.className = 'scene-field';
-    speakerField.innerHTML = `
-      <label>Who's Talking:</label>
-      <select onchange="updateScene(${index}, 'speaker', this.value)">
-        <option value="none" ${scene.speaker === 'none' ? 'selected' : ''}>None</option>
-        <option value="char1" ${scene.speaker === 'char1' ? 'selected' : ''}>Character 1</option>
-        <option value="char2" ${scene.speaker === 'char2' ? 'selected' : ''}>Character 2</option>
-      </select>
-    `;
-
-    const bobbingEnabledField = document.createElement('div');
-    bobbingEnabledField.className = 'scene-field';
-    const bobbingChecked = scene.bobbingEnabled !== false;
-    bobbingEnabledField.innerHTML = `
-      <label style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" ${bobbingChecked ? 'checked' : ''}
-          onchange="updateScene(${index}, 'bobbingEnabled', this.checked)" />
-        Enable Bobbing Animation
-      </label>
-    `;
-
-    const bobbingTargetField = document.createElement('div');
-    bobbingTargetField.className = 'scene-field';
-    const bobbingTarget = scene.bobbingTarget || 'none';
-    bobbingTargetField.innerHTML = `
-      <label>Bobbing Target:</label>
-      <select onchange="updateScene(${index}, 'bobbingTarget', this.value)">
-        <option value="none" ${bobbingTarget === 'none' ? 'selected' : ''}>None</option>
-        <option value="char1" ${bobbingTarget === 'char1' ? 'selected' : ''}>Character 1</option>
-        <option value="char2" ${bobbingTarget === 'char2' ? 'selected' : ''}>Character 2</option>
-        <option value="both" ${bobbingTarget === 'both' ? 'selected' : ''}>Both Characters</option>
-      </select>
-    `;
-
-    const bobbingDirectionField = document.createElement('div');
-    bobbingDirectionField.className = 'scene-field';
-    const bobbingDirection = scene.bobbingDirection || 'vertical';
-    bobbingDirectionField.innerHTML = `
-      <label>Bobbing Direction:</label>
-      <select onchange="updateScene(${index}, 'bobbingDirection', this.value)">
-        <option value="vertical" ${bobbingDirection === 'vertical' ? 'selected' : ''}>Vertical</option>
-        <option value="horizontal" ${bobbingDirection === 'horizontal' ? 'selected' : ''}>Horizontal</option>
-      </select>
-    `;
-
-    const bobbingSpeedField = document.createElement('div');
-    bobbingSpeedField.className = 'scene-field';
-    const bobbingSpeed = scene.bobbingSpeed !== undefined ? scene.bobbingSpeed : 2;
-    bobbingSpeedField.innerHTML = `
-      <label>Bobbing Speed: <span>${bobbingSpeed}</span></label>
-      <input type="range" min="1" max="5" step="1" value="${bobbingSpeed}"
-        oninput="this.previousElementSibling.querySelector('span').textContent = this.value; updateScene(${index}, 'bobbingSpeed', parseInt(this.value))" />
-    `;
-
-    const bobbingAmplitudeField = document.createElement('div');
-    bobbingAmplitudeField.className = 'scene-field';
-    const bobbingAmplitude = scene.bobbingAmplitude !== undefined ? scene.bobbingAmplitude : 6;
-    bobbingAmplitudeField.innerHTML = `
-      <label>Bobbing Amplitude: <span>${bobbingAmplitude}px</span></label>
-      <input type="range" min="1" max="20" step="1" value="${bobbingAmplitude}"
-        oninput="this.previousElementSibling.querySelector('span').textContent = this.value + 'px'; updateScene(${index}, 'bobbingAmplitude', parseInt(this.value))" />
-    `;
-
-    const durationField = document.createElement('div');
-    durationField.className = 'scene-field';
-    const durationValue = scene.duration || 2000;
-    durationField.innerHTML = `
-      <label>Hold Duration: <span>${formatDuration(durationValue)}</span></label>
-      <input type="range" min="500" max="5000" step="100" value="${durationValue}"
-        oninput="this.previousElementSibling.querySelector('span').textContent = formatDuration(this.value); updateScene(${index}, 'duration', parseInt(this.value))" />
-    `;
-
-    const transitionField = document.createElement('div');
-    transitionField.className = 'scene-field';
-    const currentTransition = scene.transitionType || 'none';
-    transitionField.innerHTML = `
-      <label>Transition Type:</label>
-      <select onchange="updateScene(${index}, 'transitionType', this.value)">
-        <option value="none" ${currentTransition === 'none' ? 'selected' : ''}>None</option>
-        <option value="fadeIn" ${currentTransition === 'fadeIn' ? 'selected' : ''}>Fade In from Black</option>
-        <option value="fadeOut" ${currentTransition === 'fadeOut' ? 'selected' : ''}>Fade Out to Black</option>
-      </select>
-    `;
-
-    const transitionDurationField = document.createElement('div');
-    transitionDurationField.className = 'scene-field';
-    const transitionDurationValue = scene.transitionDuration || 500;
-    transitionDurationField.innerHTML = `
-      <label>Transition Duration: <span>${formatDuration(transitionDurationValue)}</span></label>
-      <input type="range" min="100" max="2000" step="100" value="${transitionDurationValue}"
-        oninput="this.previousElementSibling.querySelector('span').textContent = formatDuration(this.value); updateScene(${index}, 'transitionDuration', parseInt(this.value))" />
-    `;
-
-    const boxStyleField = document.createElement('div');
-    boxStyleField.className = 'scene-field';
-    const currentBoxStyle = scene.boxStyle || 'simple';
-    boxStyleField.innerHTML = `
-      <label>Dialogue Box Style:</label>
-      <select onchange="updateSceneBoxStyle(${index}, this.value)">
-        <option value="simple" ${currentBoxStyle === 'simple' ? 'selected' : ''}>Simple</option>
-        <option value="ornate" ${currentBoxStyle === 'ornate' ? 'selected' : ''}>Ornate</option>
-        <option value="custom" ${currentBoxStyle === 'custom' ? 'selected' : ''}>Custom Image</option>
-      </select>
-    `;
-
-    const ornateColorsField = document.createElement('div');
-    ornateColorsField.className = 'scene-field';
-    ornateColorsField.style.display = currentBoxStyle === 'ornate' ? 'block' : 'none';
-    ornateColorsField.innerHTML = `
-      <label>Border Color:</label>
-      <input type="color" value="${scene.ornateBorderColor || '#5a2f2f'}" onchange="updateScene(${index}, 'ornateBorderColor', this.value)" />
-      <label>Accent Color:</label>
-      <input type="color" value="${scene.ornateAccentColor || '#c97676'}" onchange="updateScene(${index}, 'ornateAccentColor', this.value)" />
-      <label>Corner Color:</label>
-      <input type="color" value="${scene.ornateCornerColor || '#8b4545'}" onchange="updateScene(${index}, 'ornateCornerColor', this.value)" />
-    `;
-
-    const customBoxImageField = document.createElement('div');
-    customBoxImageField.className = 'scene-field';
-    customBoxImageField.style.display = currentBoxStyle === 'custom' ? 'block' : 'none';
-    customBoxImageField.innerHTML = `
-      <label>Custom Box Image:</label>
-      <input type="file" accept="image/*" onchange="handleSceneBoxImageUpload(${index}, this.files[0])" />
-      ${scene.customBoxImage ? '<small style="color: #667eea;">Image uploaded</small>' : '<small>No image uploaded</small>'}
-    `;
-
-    sceneDetails.appendChild(nameField);
-    sceneDetails.appendChild(textField);
-    sceneDetails.appendChild(bgImageField);
-    sceneDetails.appendChild(char1ImageField);
-    sceneDetails.appendChild(char2ImageField);
-    sceneDetails.appendChild(textBoxField);
-    sceneDetails.appendChild(speakerField);
-    sceneDetails.appendChild(bobbingEnabledField);
-    sceneDetails.appendChild(bobbingTargetField);
-    sceneDetails.appendChild(bobbingDirectionField);
-    sceneDetails.appendChild(bobbingSpeedField);
-    sceneDetails.appendChild(bobbingAmplitudeField);
-    sceneDetails.appendChild(durationField);
-    sceneDetails.appendChild(transitionField);
-    sceneDetails.appendChild(transitionDurationField);
-    sceneDetails.appendChild(boxStyleField);
-    sceneDetails.appendChild(ornateColorsField);
-    sceneDetails.appendChild(customBoxImageField);
     sceneItem.appendChild(sceneDetails);
 
     scenesList.appendChild(sceneItem);
@@ -1299,9 +1457,11 @@ function renderScenes() {
 function loadScene(index) {
   const scene = state.scenes[index];
   state.currentSceneIndex = index;
-  state.charName = scene.charName;
-  state.dialogueText = scene.dialogueText;
-  state.activeSpeaker = scene.speaker;
+  state.editingMovementSceneIndex = -1;
+  canvas.style.cursor = 'default';
+  state.charName = scene.charName || '';
+  state.dialogueText = scene.dialogueText || '';
+  state.activeSpeaker = scene.speaker || 'none';
   state.nameX = scene.nameX !== undefined ? scene.nameX : 10;
   state.nameY = scene.nameY !== undefined ? scene.nameY : 75;
   state.dialogueX = scene.dialogueX !== undefined ? scene.dialogueX : 10;
@@ -1350,13 +1510,17 @@ function loadScene(index) {
     document.getElementById('textBoxSelect').value = '';
   }
 
-  document.getElementById('charName').value = scene.charName;
-  document.getElementById('dialogueText').value = scene.dialogueText;
+  document.getElementById('charName').value = scene.charName || '';
+  document.getElementById('dialogueText').value = scene.dialogueText || '';
   document.getElementById('boxColor').value = state.boxColor;
   document.getElementById('textColor').value = state.textColor;
 
   renderScenes();
-  drawScene(null, null, scene);
+  if (scene.type === 'movement') {
+    drawMovementScenePreview(scene);
+  } else {
+    drawScene(null, null, scene);
+  }
 }
 
 window.updateScene = function(index, field, value) {
@@ -1382,7 +1546,11 @@ window.updateScene = function(index, field, value) {
     } else if (!['boxStyle', 'ornateBorderColor', 'ornateAccentColor', 'ornateCornerColor', 'customBoxImage'].includes(field)) {
       state[field] = value;
     }
-    drawScene(null, null, state.scenes[index]);
+    if (state.scenes[index].type === 'movement') {
+      drawMovementScenePreview(state.scenes[index]);
+    } else {
+      drawScene(null, null, state.scenes[index]);
+    }
   }
   renderScenes();
 };
@@ -1427,6 +1595,12 @@ document.getElementById('addSceneBtn').addEventListener('click', () => {
   const scene = createScene();
   scene.dialogueText = state.dialogueText;
   scene.speaker = state.activeSpeaker;
+  state.scenes.push(scene);
+  loadScene(state.scenes.length - 1);
+});
+
+document.getElementById('addMovementSceneBtn').addEventListener('click', () => {
+  const scene = createMovementScene();
   state.scenes.push(scene);
   loadScene(state.scenes.length - 1);
 });
@@ -1494,7 +1668,6 @@ async function exportAsMP4() {
 
     for (let sceneIndex = 0; sceneIndex < state.scenes.length; sceneIndex++) {
       const scene = state.scenes[sceneIndex];
-      const text = scene.dialogueText;
 
       const savedState = {
         charName: state.charName,
@@ -1503,6 +1676,11 @@ async function exportAsMP4() {
         charImage: state.charImage,
         char2Image: state.char2Image,
         bgImage: state.bgImage,
+        charX: state.charX,
+        charY: state.charY,
+        char2X: state.char2X,
+        char2Y: state.char2Y,
+        showDialogue: state.showDialogue,
         bobbingEnabled: state.bobbingEnabled,
         bobbingTarget: state.bobbingTarget,
         bobbingDirection: state.bobbingDirection,
@@ -1510,9 +1688,9 @@ async function exportAsMP4() {
         bobbingAmplitude: state.bobbingAmplitude
       };
 
-      state.charName = scene.charName;
-      state.dialogueText = scene.dialogueText;
-      state.activeSpeaker = scene.speaker;
+      state.charName = scene.charName || '';
+      state.dialogueText = scene.dialogueText || '';
+      state.activeSpeaker = scene.speaker || 'none';
       state.bobbingEnabled = scene.bobbingEnabled !== undefined ? scene.bobbingEnabled : true;
       state.bobbingTarget = scene.bobbingTarget !== undefined ? scene.bobbingTarget : 'none';
       state.bobbingDirection = scene.bobbingDirection !== undefined ? scene.bobbingDirection : 'vertical';
@@ -1537,48 +1715,95 @@ async function exportAsMP4() {
         state.bgImage = null;
       }
 
-      if (scene.transitionType === 'fadeIn' && scene.transitionDuration > 0) {
-        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
-        for (let i = 0; i < transitionFrames; i++) {
-          const fadeOpacity = i / transitionFrames;
+      if (scene.type === 'movement') {
+        const nodes = scene.nodes || [];
+        state.showDialogue = false;
+
+        if (nodes.length >= 2) {
+          const frameDelay = 33;
+          const speed = scene.movementSpeed || 200;
+
+          for (let seg = 0; seg < nodes.length - 1; seg++) {
+            const fromNode = nodes[seg];
+            const toNode = nodes[seg + 1];
+            const dx = (toNode.x - fromNode.x) / 100 * canvas.width;
+            const dy = (toNode.y - fromNode.y) / 100 * canvas.height;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const segDuration = (dist / speed) * 1000;
+            const segFrames = Math.max(1, Math.ceil(segDuration / frameDelay));
+
+            for (let f = 0; f <= segFrames; f++) {
+              const t = f / segFrames;
+              const x = fromNode.x + (toNode.x - fromNode.x) * t;
+              const y = fromNode.y + (toNode.y - fromNode.y) * t;
+              if (scene.movingCharacter === 'char2') {
+                state.char2X = x; state.char2Y = y;
+              } else {
+                state.charX = x; state.charY = y;
+              }
+              animationTime = frameTime;
+              drawScene(null, 'none', scene);
+              await new Promise(resolve => setTimeout(resolve, frameDelay));
+              frameTime += frameDelay;
+            }
+          }
+        } else if (nodes.length === 1) {
+          if (scene.movingCharacter === 'char2') {
+            state.char2X = nodes[0].x; state.char2Y = nodes[0].y;
+          } else {
+            state.charX = nodes[0].x; state.charY = nodes[0].y;
+          }
           animationTime = frameTime;
-          drawScene('', scene.speaker, scene, fadeOpacity, 'fadeIn');
+          drawScene(null, 'none', scene);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          frameTime += 1000;
+        }
+      } else {
+        const text = scene.dialogueText;
+
+        if (scene.transitionType === 'fadeIn' && scene.transitionDuration > 0) {
+          const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+          for (let i = 0; i < transitionFrames; i++) {
+            const fadeOpacity = i / transitionFrames;
+            animationTime = frameTime;
+            drawScene('', scene.speaker, scene, fadeOpacity, 'fadeIn');
+            await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
+            frameTime += state.typingSpeed;
+          }
+        }
+
+        for (let i = 0; i <= text.length; i++) {
+          const partialText = text.substring(0, i);
+          animationTime = frameTime;
+          drawScene(partialText, scene.speaker, scene);
           await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
           frameTime += state.typingSpeed;
         }
-      }
 
-      for (let i = 0; i <= text.length; i++) {
-        const partialText = text.substring(0, i);
-        animationTime = frameTime;
-        drawScene(partialText, scene.speaker, scene);
-        await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
-        frameTime += state.typingSpeed;
-      }
+        const holdDuration = scene.duration || 2000;
+        await new Promise(resolve => {
+          let elapsed = 0;
+          const interval = setInterval(() => {
+            animationTime = frameTime + elapsed;
+            drawScene(text, scene.speaker, scene);
+            elapsed += 16;
+            if (elapsed >= holdDuration) {
+              clearInterval(interval);
+              resolve();
+            }
+          }, 16);
+        });
+        frameTime += holdDuration;
 
-      const holdDuration = scene.duration || 2000;
-      await new Promise(resolve => {
-        let elapsed = 0;
-        const interval = setInterval(() => {
-          animationTime = frameTime + elapsed;
-          drawScene(text, scene.speaker, scene);
-          elapsed += 16;
-          if (elapsed >= holdDuration) {
-            clearInterval(interval);
-            resolve();
+        if (scene.transitionType === 'fadeOut' && scene.transitionDuration > 0) {
+          const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
+          for (let i = 0; i < transitionFrames; i++) {
+            const fadeOpacity = i / transitionFrames;
+            animationTime = frameTime;
+            drawScene(text, scene.speaker, scene, fadeOpacity, 'fadeOut');
+            await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
+            frameTime += state.typingSpeed;
           }
-        }, 16);
-      });
-      frameTime += holdDuration;
-
-      if (scene.transitionType === 'fadeOut' && scene.transitionDuration > 0) {
-        const transitionFrames = Math.ceil(scene.transitionDuration / state.typingSpeed);
-        for (let i = 0; i < transitionFrames; i++) {
-          const fadeOpacity = i / transitionFrames;
-          animationTime = frameTime;
-          drawScene(text, scene.speaker, scene, fadeOpacity, 'fadeOut');
-          await new Promise(resolve => setTimeout(resolve, state.typingSpeed));
-          frameTime += state.typingSpeed;
         }
       }
 
@@ -1603,5 +1828,124 @@ async function exportAsMP4() {
 }
 
 document.getElementById('exportMp4Btn').addEventListener('click', exportAsMP4);
+
+canvas.addEventListener('click', (e) => {
+  if (state.editingMovementSceneIndex < 0) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const canvasX = (e.clientX - rect.left) * scaleX;
+  const canvasY = (e.clientY - rect.top) * scaleY;
+  const xPct = Math.round((canvasX / canvas.width) * 100);
+  const yPct = Math.round((canvasY / canvas.height) * 100);
+  const scene = state.scenes[state.editingMovementSceneIndex];
+  if (!scene || scene.type !== 'movement') return;
+  scene.nodes.push({ x: xPct, y: yPct });
+  renderScenes();
+  drawMovementScenePreview(scene);
+});
+
+canvas.style.cursor = 'default';
+
+function drawMovementScenePreview(scene) {
+  const savedChar = { charX: state.charX, charY: state.charY, char2X: state.char2X, char2Y: state.char2Y };
+
+  if (scene.char1Index !== undefined && scene.char1Index !== null) {
+    state.charImage = state.char1Library[scene.char1Index]?.image || null;
+  } else {
+    state.charImage = null;
+  }
+  if (scene.char2Index !== undefined && scene.char2Index !== null) {
+    state.char2Image = state.char2Library[scene.char2Index]?.image || null;
+  } else {
+    state.char2Image = null;
+  }
+  if (scene.bgIndex !== undefined && scene.bgIndex !== null) {
+    state.bgImage = state.bgLibrary[scene.bgIndex]?.image || null;
+  } else {
+    state.bgImage = null;
+  }
+
+  if (scene.nodes.length > 0) {
+    const firstNode = scene.nodes[0];
+    if (scene.movingCharacter === 'char1') {
+      state.charX = firstNode.x;
+      state.charY = firstNode.y;
+    } else {
+      state.char2X = firstNode.x;
+      state.char2Y = firstNode.y;
+    }
+  }
+
+  const savedShowDialogue = state.showDialogue;
+  state.showDialogue = false;
+  drawScene();
+  state.showDialogue = savedShowDialogue;
+
+  // Draw node path overlay
+  if (scene.nodes.length > 0) {
+    ctx.save();
+    ctx.strokeStyle = '#00d4ff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    scene.nodes.forEach((n, i) => {
+      const px = n.x / 100 * canvas.width;
+      const py = n.y / 100 * canvas.height;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    scene.nodes.forEach((n, i) => {
+      const px = n.x / 100 * canvas.width;
+      const py = n.y / 100 * canvas.height;
+      ctx.beginPath();
+      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.fillStyle = i === 0 ? '#22c55e' : '#00d4ff';
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, px, py);
+    });
+    ctx.restore();
+  }
+
+  Object.assign(state, savedChar);
+}
+
+window.toggleMovementNodeEdit = function(index) {
+  if (state.editingMovementSceneIndex === index) {
+    state.editingMovementSceneIndex = -1;
+    canvas.style.cursor = 'default';
+    drawScene();
+  } else {
+    state.editingMovementSceneIndex = index;
+    canvas.style.cursor = 'crosshair';
+    drawMovementScenePreview(state.scenes[index]);
+  }
+  renderScenes();
+};
+
+window.removeMovementNode = function(sceneIndex, nodeIndex) {
+  state.scenes[sceneIndex].nodes.splice(nodeIndex, 1);
+  renderScenes();
+  if (state.currentSceneIndex === sceneIndex) {
+    drawMovementScenePreview(state.scenes[sceneIndex]);
+  }
+};
+
+window.clearMovementNodes = function(sceneIndex) {
+  state.scenes[sceneIndex].nodes = [];
+  renderScenes();
+  if (state.currentSceneIndex === sceneIndex) {
+    drawMovementScenePreview(state.scenes[sceneIndex]);
+  }
+};
 
 drawScene();

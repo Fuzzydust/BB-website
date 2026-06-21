@@ -557,6 +557,53 @@ input[type='range']::-moz-range-thumb:hover {
   background: #2c3e50;
 }
 
+.nodes-list {
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.movement-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f0f4ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.node-number {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #00d4ff;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.movement-node:first-child .node-number {
+  background: #22c55e;
+}
+
+.node-coords {
+  flex: 1;
+  color: #555;
+}
+
+.active-node-btn {
+  background: #22c55e !important;
+  color: white !important;
+  border-color: #22c55e !important;
+}
+
 @media (max-width: 1024px) {
   .workspace {
     grid-template-columns: 1fr;
